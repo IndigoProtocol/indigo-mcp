@@ -13,13 +13,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@indigo-labs/indigo-sdk": "^0.1.2",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   },
   "dependencies": {
+    "@indigo-labs/indigo-sdk": "^0.1.2",
     "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.2",
