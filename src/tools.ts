@@ -1,10 +1,53 @@
 import axios from 'axios';
 import { formatCdp } from './utils';
 import { paymentCredentialOf } from '@lucid-evolution/lucid';
+import { z } from 'zod';
+import express from 'express';
 
 const INDIGO_API_HOST: string = 'https://analytics.indigoprotocol.io/api';
 
-export async function handleAssets(uri) {
+export default [
+    {
+        name: 'indigo_assets',
+        description: 'Retrieve iAsset system parameters',
+        inputSchema: {},
+        handler: handleAssets,
+    },
+    {
+        name: 'indigo_asset_prices',
+        description: 'Retrieve iAsset prices',
+        inputSchema: {},
+        handler: handleAssetPrices,
+    },
+    {
+        name: 'indigo_asset_analytics',
+        description: 'Retrieve iAsset analytics like Market Cap, TVL, etc.',
+        inputSchema: {},
+        handler: handleAssetAnalytics,
+    },
+    {
+        name: 'indigo_interest_rates',
+        description: 'Retrieve iAsset interest rates',
+        inputSchema: {},
+        handler: handleAssetInterestRates,
+    },
+    {
+        name: 'indigo_cdps',
+        description: 'Retrieve open Collateralized Debt Positions (CDPs)',
+        inputSchema: {},
+        handler: handleCdps,
+    },
+    {
+        name: 'indigo_cdps_at_address',
+        description: 'Retrieve open Collateralized Debt Positions (CDPs) for a specific address',
+        inputSchema: {
+            address: z.string().describe('Address to get CDPs for'),
+        },
+        handler: handleCdpsAtAddress,
+    },
+];
+
+export async function handleAssets(request: express.Request) {
     return axios.get(`${INDIGO_API_HOST}/assets`)
         .then((response) => {
             const data = response.data.map((assetInfo) => ({
@@ -19,14 +62,14 @@ export async function handleAssets(uri) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };
         });
 }
 
-export async function handleAssetPrices(uri) {
+export async function handleAssetPrices(request: express.Request) {
     return axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
             const data = response.data.map((assetInfo) => ({
@@ -36,14 +79,14 @@ export async function handleAssetPrices(uri) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };
         });
 }
 
-export async function handleAssetAnalytics(uri) {
+export async function handleAssetAnalytics(request: express.Request) {
     return axios.get(`${INDIGO_API_HOST}/assets/analytics`)
         .then((response) => {
             const responseData = response.data;
@@ -60,14 +103,14 @@ export async function handleAssetAnalytics(uri) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };
         });
 }
 
-export async function handleAssetInterestRates(uri) {
+export async function handleAssetInterestRates(request: express.Request) {
     return axios.get(`${INDIGO_API_HOST}/asset-interest-rates`)
         .then((response) => {
             const assets = [...new Set(response.data.map((info) => info.asset))];
@@ -86,14 +129,14 @@ export async function handleAssetInterestRates(uri) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };
         });
 }
 
-export async function handleCdps(uri) {
+export async function handleCdps(request: express.Request) {
     const assets = await axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
             return response.data.reduce((results, assetInfo) => {
@@ -117,14 +160,14 @@ export async function handleCdps(uri) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };
         });
 }
 
-export async function handleCdpsAtAddress(uri, address) {
+export async function handleCdpsAtAddress(request: express.Request, address) {
     const paymentCredential: string = paymentCredentialOf(address).hash;
     const assets = await axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
@@ -151,7 +194,7 @@ export async function handleCdpsAtAddress(uri, address) {
 
             return {
                 contents: [{
-                    uri: uri.href,
+                    type: 'text',
                     text: JSON.stringify(data),
                 }]
             };

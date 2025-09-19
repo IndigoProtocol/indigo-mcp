@@ -1,15 +1,10 @@
 import express, { Express } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { logger } from './logger';
-import {
-    handleAssetAnalytics,
-    handleAssetInterestRates,
-    handleAssetPrices,
-    handleAssets,
-    handleCdps, handleCdpsAtAddress
-} from './handlers';
 import cors from 'cors';
+import tools from './tools';
+import { McpTool } from './types';
 
 export class IndigoMcpServer {
 
@@ -50,7 +45,31 @@ export class IndigoMcpServer {
                 },
             });
 
-            this.registerResources(server);
+            tools.forEach((tool: McpTool) => {
+                server.registerTool(
+                    tool.name,
+                    {
+                        title: tool.name,
+                        description: tool.description,
+                        inputSchema: tool.inputSchema,
+                    },
+                    async (params: any) => {
+                        try {
+                            return tool.handler(request, ...Object.values(params));
+                        } catch (e) {
+                            logger.error(e);
+
+                            return {
+                                content: [{
+                                    type: 'text',
+                                    text: e
+                                }],
+                                isError: true,
+                            }
+                        }
+                    }
+                )
+            });
 
             const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
                 sessionIdGenerator: undefined,
@@ -88,15 +107,6 @@ export class IndigoMcpServer {
             },
             id: null
         }));
-    }
-
-    registerResources(server: McpServer) {
-        server.registerResource('assets', 'asset://parameters', { title: 'Asset System Parameters', description: 'Retrieve iAsset system parameters', mimeType: 'application/json' }, handleAssets);
-        server.registerResource('asset-prices', 'asset://prices', { title: 'Asset Prices', description: 'Retrieve iAsset prices', mimeType: 'application/json' }, handleAssetPrices);
-        server.registerResource('asset-analytics', 'asset://analytics', { title: 'Asset Analytics', description: 'Retrieve iAsset analytics like Market Cap, TVL, etc.', mimeType: 'application/json' }, handleAssetAnalytics);
-        server.registerResource('asset-interest-rates', 'asset://interest-rates', { title: 'Asset Interest Rates', description: 'Retrieve iAsset interest rates', mimeType: 'application/json' }, handleAssetInterestRates);
-        server.registerResource('cdps', 'cdp://all', { title: 'All open CDP positions', description: 'Retrieve open Collateralized Debt Positions (CDPs)', mimeType: 'application/json' }, handleCdps);
-        server.registerResource('cdps-at-address', new ResourceTemplate('cdp://{address}', { list: undefined }), { title: 'Address CDP positions', description: 'Retrieve open Collateralized Debt Positions (CDPs) for a specific address', mimeType: 'application/json' }, (uri, { address }) => handleCdpsAtAddress(uri, address));
     }
 
 }
