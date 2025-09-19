@@ -8,38 +8,38 @@ const INDIGO_API_HOST: string = 'https://analytics.indigoprotocol.io/api';
 
 export default [
     {
-        name: 'indigo_assets',
-        description: 'Retrieve iAsset system parameters',
+        name: 'indigo_asset_system_parameters',
+        description: 'Get Indigo system parameters for all iAssets.',
         inputSchema: {},
         handler: handleAssets,
     },
     {
         name: 'indigo_asset_prices',
-        description: 'Retrieve iAsset prices',
+        description: 'Fetch the latest prices for all Indigo iAssets.',
         inputSchema: {},
         handler: handleAssetPrices,
     },
     {
         name: 'indigo_asset_analytics',
-        description: 'Retrieve iAsset analytics like Market Cap, TVL, etc.',
+        description: 'Get Indigo iAsset analytics such as market cap, TVL, and liquidity.',
         inputSchema: {},
         handler: handleAssetAnalytics,
     },
     {
-        name: 'indigo_interest_rates',
-        description: 'Retrieve iAsset interest rates',
+        name: 'indigo_asset_interest_rates',
+        description: 'Retrieve the current interest rates for Indigo iAssets.',
         inputSchema: {},
         handler: handleAssetInterestRates,
     },
     {
-        name: 'indigo_cdps',
-        description: 'Retrieve open Collateralized Debt Positions (CDPs)',
+        name: 'indigo_cdps_all',
+        description: 'List all open Indigo Collateralized Debt Positions (CDPs).',
         inputSchema: {},
         handler: handleCdps,
     },
     {
-        name: 'indigo_cdps_at_address',
-        description: 'Retrieve open Collateralized Debt Positions (CDPs) for a specific address',
+        name: 'indigo_cdps_by_address',
+        description: 'Retrieve all open Indigo CDPs for a specific Cardano address.',
         inputSchema: {
             address: z.string().describe('Address to get CDPs for'),
         },
