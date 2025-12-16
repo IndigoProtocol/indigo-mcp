@@ -2,7 +2,6 @@ import axios from 'axios';
 import { formatCdp } from './utils';
 import { paymentCredentialOf } from '@lucid-evolution/lucid';
 import { z } from 'zod';
-import express from 'express';
 
 const INDIGO_API_HOST: string = 'https://analytics.indigoprotocol.io/api';
 
@@ -47,7 +46,7 @@ export default [
     },
 ];
 
-export async function handleAssets(request: express.Request) {
+export async function handleAssets() {
     return axios.get(`${INDIGO_API_HOST}/assets`)
         .then((response) => {
             const data = response.data.map((assetInfo) => ({
@@ -61,7 +60,7 @@ export async function handleAssets(request: express.Request) {
             }));
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
@@ -69,7 +68,7 @@ export async function handleAssets(request: express.Request) {
         });
 }
 
-export async function handleAssetPrices(request: express.Request) {
+export async function handleAssetPrices() {
     return axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
             const data = response.data.map((assetInfo) => ({
@@ -78,7 +77,7 @@ export async function handleAssetPrices(request: express.Request) {
             }));
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
@@ -86,7 +85,7 @@ export async function handleAssetPrices(request: express.Request) {
         });
 }
 
-export async function handleAssetAnalytics(request: express.Request) {
+export async function handleAssetAnalytics() {
     return axios.get(`${INDIGO_API_HOST}/assets/analytics`)
         .then((response) => {
             const responseData = response.data;
@@ -102,7 +101,7 @@ export async function handleAssetAnalytics(request: express.Request) {
             }));
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
@@ -110,7 +109,7 @@ export async function handleAssetAnalytics(request: express.Request) {
         });
 }
 
-export async function handleAssetInterestRates(request: express.Request) {
+export async function handleAssetInterestRates() {
     return axios.get(`${INDIGO_API_HOST}/asset-interest-rates`)
         .then((response) => {
             const assets = [...new Set(response.data.map((info) => info.asset))];
@@ -128,7 +127,7 @@ export async function handleAssetInterestRates(request: express.Request) {
             });
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
@@ -136,7 +135,7 @@ export async function handleAssetInterestRates(request: express.Request) {
         });
 }
 
-export async function handleCdps(request: express.Request) {
+export async function handleCdps() {
     const assets = await axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
             return response.data.reduce((results, assetInfo) => {
@@ -159,7 +158,7 @@ export async function handleCdps(request: express.Request) {
             });
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
@@ -167,7 +166,7 @@ export async function handleCdps(request: express.Request) {
         });
 }
 
-export async function handleCdpsAtAddress(request: express.Request, address) {
+export async function handleCdpsAtAddress(address) {
     const paymentCredential: string = paymentCredentialOf(address).hash;
     const assets = await axios.get(`${INDIGO_API_HOST}/asset-prices`)
         .then((response) => {
@@ -193,7 +192,7 @@ export async function handleCdpsAtAddress(request: express.Request, address) {
                 });
 
             return {
-                contents: [{
+                content: [{
                     type: 'text',
                     text: JSON.stringify(data),
                 }]
