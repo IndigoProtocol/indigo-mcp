@@ -1,31 +1,54 @@
 {
   "name": "indigo-mcp",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "type": "module",
-  "description": "",
-  "main": "dist/src/index.js",
+  "description": "MCP server for Indigo Protocol",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "indigo-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "mcp",
+    "indigo",
+    "cardano",
+    "defi",
+    "ai-agent"
+  ],
   "scripts": {
-    "build": "tsc --project tsconfig.json",
-    "dev": "npm run build && npm run start",
-    "inspector": "npx @modelcontextprotocol/inspector",
-    "start": "node --no-warnings --experimental-specifier-resolution=node ./dist/index.js"
+    "build": "tsc --project tsconfig.build.json",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\""
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IndigoProtocol/indigo-mcp"
   },
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@types/express": "^5.0.3",
-    "@types/node": "^24.3.1",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.2"
-  },
   "dependencies": {
-    "@indigo-labs/indigo-sdk": "^0.1.2",
-    "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.2",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
-    "winston-syslog": "^2.7.1",
     "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.9.2"
   }
 }
