@@ -28,6 +28,13 @@
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\""
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/IndigoProtocol/indigo-mcp"
+  },
   "author": "",
   "license": "ISC",
   "dependencies": {

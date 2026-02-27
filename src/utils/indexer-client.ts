@@ -1,13 +1,13 @@
 import axios, { type AxiosInstance } from 'axios';
 
-const INDEXER_V2_URL = process.env.INDEXER_V2_URL || 'https://indexer.indigoprotocol.io/v1';
+const INDEXER_URL = process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api';
 
 let instance: AxiosInstance | null = null;
 
 export function getIndexerClient(): AxiosInstance {
   if (!instance) {
     instance = axios.create({
-      baseURL: INDEXER_V2_URL,
+      baseURL: INDEXER_URL,
       timeout: 15_000,
       headers: {
         'Content-Type': 'application/json',
