@@ -38,6 +38,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.2",
     "zod": "^3.25.76"
