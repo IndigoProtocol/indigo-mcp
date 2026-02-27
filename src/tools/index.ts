@@ -2,6 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAnalyticsTools } from './analytics-tools.js';
 import { registerAssetTools } from './asset-tools.js';
 import { registerCdpTools } from './cdp-tools.js';
+import { registerGovernanceTools } from './governance-tools.js';
 import { registerStabilityPoolTools } from './stability-pool-tools.js';
 import { registerStakingTools } from './staking-tools.js';
 
@@ -9,6 +10,7 @@ export function registerTools(server: McpServer): void {
   registerAnalyticsTools(server);
   registerAssetTools(server);
   registerCdpTools(server);
+  registerGovernanceTools(server);
   registerStabilityPoolTools(server);
   registerStakingTools(server);
 }
