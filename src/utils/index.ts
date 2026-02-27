@@ -1,1 +1,1 @@
-export { getIndexerClient, getSyncStatus } from './indexer-client.js';
+export { getIndexerClient, getLiquidations } from './indexer-client.js';

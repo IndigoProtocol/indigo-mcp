@@ -18,8 +18,8 @@ export function getIndexerClient(): AxiosInstance {
   return instance;
 }
 
-export async function getSyncStatus(): Promise<unknown> {
+export async function getLiquidations(): Promise<unknown> {
   const client = getIndexerClient();
-  const response = await client.get('/sync/status');
+  const response = await client.get('/liquidations');
   return response.data;
 }
