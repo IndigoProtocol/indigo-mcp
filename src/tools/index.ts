@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerAssetTools } from './asset-tools.js';
 
 export function registerTools(server: McpServer): void {
-  // Tools will be registered here
+  registerAssetTools(server);
 }

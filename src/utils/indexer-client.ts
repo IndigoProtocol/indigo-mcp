@@ -1,6 +1,6 @@
 import axios, { type AxiosInstance } from 'axios';
 
-const INDEXER_URL = process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api';
+const INDEXER_URL = process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api/v1';
 
 let instance: AxiosInstance | null = null;
 
