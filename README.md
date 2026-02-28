@@ -9,6 +9,13 @@ MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo 
 - CDP/loan browsing with pagination and filtering
 - Owner lookup by payment key hash or bech32 address
 - CDP health analysis with collateral ratio and liquidation risk status
+- Stability pool state and account queries
+- INDY staking positions and manager state
+- Protocol analytics: TVL, APR rewards, DEX yields, aggregated stats
+- Governance: protocol parameters, polls, temperature checks
+- Redemption order book and queue aggregation
+- DEX proxy: Steelswap swaps, Iris liquidity pools, Blockfrost balances
+- Collector UTXOs, IPFS storage and retrieval
 
 ## Quick Start
 
@@ -64,6 +71,67 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_cdps_by_address` | Get CDPs for a specific Cardano address | `address`: bech32 address (addr1... or addr_test1...) |
 | `analyze_cdp_health` | Analyze collateral ratios and liquidation risk | `owner`: payment key hash or bech32 address |
 
+### Stability Pool Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_stability_pools` | Get the latest stability pool state for each iAsset | None |
+| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, or iSOL |
+| `get_sp_account_by_owner` | Get stability pool accounts for specific owners | `owners`: array of payment key hashes or bech32 addresses |
+
+### Staking Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_staking_info` | Get the current INDY staking manager state | None |
+| `get_staking_positions` | Get all open INDY staking positions | None |
+| `get_staking_positions_by_owner` | Get INDY staking positions for specific owners | `owners`: array of payment key hashes or bech32 addresses |
+| `get_staking_position_by_address` | Get INDY staking positions for a single address | `address`: Cardano bech32 address |
+
+### Analytics & APR Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_tvl` | Get historical TVL data from DefiLlama | None |
+| `get_apr_rewards` | Get all APR reward records | None |
+| `get_apr_by_key` | Get APR for a specific key | `key`: APR key (e.g. sp_iUSD_indy, stake_ada) |
+| `get_dex_yields` | Get DEX farm yields for iAsset pairs | None |
+| `get_protocol_stats` | Get aggregated protocol statistics | None |
+
+### Governance Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_protocol_params` | Get latest governance protocol parameters | None |
+| `get_temperature_checks` | Get temperature check polls | None |
+| `get_sync_status` | Get indexer sync status | None |
+| `get_polls` | Get all governance polls | None |
+
+### Redemption & Order Book Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_order_book` | Get open limited redemption positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
+| `get_redemption_orders` | Get redemption orders with optional filters | `timestamp?`: Unix ms; `in_range?`: filter by price range |
+| `get_redemption_queue` | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
+
+### DEX Proxy Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_steelswap_tokens` | Get all tokens available on Steelswap DEX | None |
+| `get_steelswap_estimate` | Get a swap estimate from Steelswap | `tokenIn`: input token; `tokenOut`: output token; `amountIn`: amount |
+| `get_iris_liquidity_pools` | Get liquidity pools from Iris | `tokenA?`: first token; `tokenB?`: second token; `dex?`: DEX filter |
+| `get_blockfrost_balances` | Get token balances for a Cardano address | `address`: Cardano bech32 address |
+
+### Collector & IPFS Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `get_collector_utxos` | Get collector UTXOs for fee distribution | `length?`: max UTXOs to return |
+| `store_on_ipfs` | Store text content on IPFS | `text`: content to store |
+| `retrieve_from_ipfs` | Retrieve content from IPFS by CID | `cid`: IPFS content identifier |
+
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -81,6 +149,15 @@ When connected to an LLM agent, you can ask natural language questions like:
 - "What CDPs does this address own?" (paste a Cardano address)
 - "Analyze the health of my CDPs" (with your address or payment key hash)
 - "Are any of my positions at risk of liquidation?"
+- "Show me the current stability pool state"
+- "What are my stability pool deposits?" (with your address)
+- "How much INDY am I staking?" (with your address)
+- "What's the current TVL of Indigo?"
+- "What APR can I earn on iUSD stability pool?"
+- "What are the current governance protocol parameters?"
+- "Show me the iUSD redemption queue"
+- "Get a Steelswap estimate for swapping 100 ADA to iUSD"
+- "What are the current DEX yields for iAsset pairs?"
 
 ## Development
 
@@ -109,24 +186,39 @@ npm run lint           # eslint
 npm run lint:fix       # eslint --fix
 npm run format         # prettier
 npm run format:check   # prettier --check
+npm run test           # run tests
+npm run test:watch     # run tests in watch mode
 ```
 
 ### Project Structure
 
 ```
 src/
-├── index.ts                  # Server entry point (stdio transport)
+├── index.ts                       # Server entry point (stdio transport)
 ├── tools/
-│   ├── index.ts              # Tool registration (asset + CDP)
-│   ├── asset-tools.ts        # 5 asset/price tools
-│   └── cdp-tools.ts          # 4 CDP/loan tools
+│   ├── index.ts                   # Tool registration hub
+│   ├── asset-tools.ts             # 5 asset/price tools
+│   ├── cdp-tools.ts               # 4 CDP/loan tools
+│   ├── stability-pool-tools.ts    # 3 stability pool tools
+│   ├── staking-tools.ts           # 4 INDY staking tools
+│   ├── analytics-tools.ts         # 5 analytics/APR tools
+│   ├── governance-tools.ts        # 4 governance tools
+│   ├── redemption-tools.ts        # 3 redemption/order book tools
+│   ├── dex-tools.ts               # 4 DEX proxy tools
+│   └── collector-tools.ts         # 3 collector/IPFS tools
 ├── resources/
-│   └── index.ts              # MCP resource definitions
+│   └── index.ts                   # MCP resource definitions
+├── tests/
+│   ├── unit/
+│   │   ├── tools/                 # Unit tests for each tool module
+│   │   └── utils/                 # Unit tests for validators, address
+│   └── integration/
+│       └── indexer-client.test.ts # Integration test for HTTP client
 └── utils/
-    ├── index.ts              # Re-exports
-    ├── indexer-client.ts     # Axios client for Indigo analytics API
-    ├── validators.ts         # Zod validators (AssetParam enum)
-    └── address.ts            # Bech32 address → payment credential
+    ├── index.ts                   # Re-exports
+    ├── indexer-client.ts          # Axios client for Indigo analytics API
+    ├── validators.ts              # Zod validators (AssetParam enum)
+    └── address.ts                 # Bech32 address → payment credential
 ```
 
 ### Testing via stdin
