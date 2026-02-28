@@ -79,6 +79,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, or iSOL |
 | `get_sp_account_by_owner` | Get stability pool accounts for specific owners | `owners`: array of payment key hashes or bech32 addresses |
 
+### Stability Pool Write Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `create_sp_account` | Create a new stability pool account by depositing iAssets | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `amount`: iAsset amount in smallest unit |
+| `adjust_sp_account` | Deposit to or withdraw from a stability pool account | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `amount`: positive=deposit, negative=withdraw; `accountTxHash`: UTxO tx hash; `accountOutputIndex`: UTxO output index |
+| `close_sp_account` | Close a stability pool account and withdraw everything | `address`: bech32 address; `accountTxHash`: UTxO tx hash; `accountOutputIndex`: UTxO output index |
 ### Staking Tools
 
 | Tool | Description | Parameters |
@@ -203,7 +210,8 @@ src/
 │   ├── index.ts                   # Tool registration hub
 │   ├── asset-tools.ts             # 5 asset/price tools
 │   ├── cdp-tools.ts               # 4 CDP/loan tools
-│   ├── stability-pool-tools.ts    # 3 stability pool tools
+│   ├── stability-pool-tools.ts    # 3 stability pool tools\
+│   ├── stability-pool-write-tools.ts # 3 stability pool write tools
 │   ├── staking-tools.ts           # 4 INDY staking tools
 │   ├── analytics-tools.ts         # 5 analytics/APR tools
 │   ├── governance-tools.ts        # 4 governance tools
