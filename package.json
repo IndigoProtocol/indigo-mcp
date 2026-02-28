@@ -40,6 +40,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@indigo-labs/indigo-sdk": "^0.2.36",
+    "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.2",
     "bech32": "^2.0.0",
