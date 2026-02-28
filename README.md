@@ -71,7 +71,16 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_cdps_by_address` | Get CDPs for a specific Cardano address | `address`: bech32 address (addr1... or addr_test1...) |
 | `analyze_cdp_health` | Analyze collateral ratios and liquidation risk | `owner`: payment key hash or bech32 address |
 
-### CDP Mint/Burn Tools (Write)
+### CDP Write Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `open_cdp` | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
+| `deposit_cdp` | Deposit additional collateral into a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace |
+| `withdraw_cdp` | Withdraw collateral from a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace |
+| `close_cdp` | Close a CDP and reclaim collateral | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
+
+### CDP Mint/Burn Tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
