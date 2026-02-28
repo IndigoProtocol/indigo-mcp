@@ -95,6 +95,14 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_staking_positions_by_owner` | Get INDY staking positions for specific owners | `owners`: array of payment key hashes or bech32 addresses |
 | `get_staking_position_by_address` | Get INDY staking positions for a single address | `address`: Cardano bech32 address |
 
+### Staking Write Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `open_staking_position` | Stake INDY tokens by creating a new staking position | `address`: bech32 address; `amount`: INDY amount in smallest unit |
+| `adjust_staking_position` | Adjust an existing staking position (add or remove INDY) | `address`: bech32 address; `amount`: positive=stake more, negative=unstake; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
+| `close_staking_position` | Close a staking position and unstake all INDY | `address`: bech32 address; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
+
 ### Analytics & APR Tools
 
 | Tool | Description | Parameters |
@@ -213,6 +221,7 @@ src/
 │   ├── stability-pool-tools.ts    # 3 stability pool tools\
 │   ├── stability-pool-write-tools.ts # 3 stability pool write tools
 │   ├── staking-tools.ts           # 4 INDY staking tools
+│   ├── staking-write-tools.ts     # 3 INDY staking write tools
 │   ├── analytics-tools.ts         # 5 analytics/APR tools
 │   ├── governance-tools.ts        # 4 governance tools
 │   ├── redemption-tools.ts        # 3 redemption/order book tools

@@ -11,6 +11,7 @@ import { registerRedemptionTools } from './redemption-tools.js';
 import { registerStabilityPoolTools } from './stability-pool-tools.js';
 import { registerStabilityPoolWriteTools } from './stability-pool-write-tools.js';
 import { registerStakingTools } from './staking-tools.js';
+import { registerStakingWriteTools } from './staking-write-tools.js';
 
 export function registerTools(server: McpServer): void {
   registerAnalyticsTools(server);
@@ -25,4 +26,5 @@ export function registerTools(server: McpServer): void {
   registerStabilityPoolTools(server);
   registerStabilityPoolWriteTools(server);
   registerStakingTools(server);
+  registerStakingWriteTools(server);
 }
