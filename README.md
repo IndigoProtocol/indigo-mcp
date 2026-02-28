@@ -134,9 +134,11 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `INDEXER_URL` | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `INDEXER_URL` | No | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL |
+| `BLOCKFROST_API_KEY` | For write ops | — | Blockfrost project ID for transaction building |
+| `CARDANO_NETWORK` | No | `mainnet` | Cardano network: `mainnet`, `preprod`, or `preview` |
 
 ## Example Queries
 
@@ -195,6 +197,8 @@ npm run test:watch     # run tests in watch mode
 ```
 src/
 ├── index.ts                       # Server entry point (stdio transport)
+├── types/
+│   └── tx-types.ts                # UnsignedTxResult, TxSummary types
 ├── tools/
 │   ├── index.ts                   # Tool registration hub
 │   ├── asset-tools.ts             # 5 asset/price tools
@@ -218,7 +222,10 @@ src/
     ├── index.ts                   # Re-exports
     ├── indexer-client.ts          # Axios client for Indigo analytics API
     ├── validators.ts              # Zod validators (AssetParam enum)
-    └── address.ts                 # Bech32 address → payment credential
+    ├── address.ts                 # Bech32 address → payment credential
+    ├── lucid-provider.ts          # Lucid + Blockfrost singleton provider
+    ├── sdk-config.ts              # SystemParams loader with cache
+    └── tx-builder.ts              # Transaction builder → unsigned CBOR
 ```
 
 ### Testing via stdin
