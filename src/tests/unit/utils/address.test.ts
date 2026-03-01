@@ -13,7 +13,9 @@ describe('extractPaymentCredential', () => {
   });
 
   it('should throw on invalid input (not hex, not bech32)', () => {
-    expect(() => extractPaymentCredential('not-valid')).toThrow('Invalid address or payment key hash');
+    expect(() => extractPaymentCredential('not-valid')).toThrow(
+      'Invalid address or payment key hash'
+    );
   });
 
   it('should throw on empty string', () => {

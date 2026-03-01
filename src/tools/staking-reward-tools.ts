@@ -1,9 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import {
-  distributeAda,
-  findStakingManager,
-} from '@indigo-labs/indigo-sdk';
+import { distributeAda, findStakingManager } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 
@@ -18,7 +15,7 @@ export function registerStakingRewardTools(server: McpServer): void {
           z.object({
             txHash: z.string().describe('Transaction hash of the collector UTxO'),
             outputIndex: z.number().describe('Output index of the collector UTxO'),
-          }),
+          })
         )
         .describe('Array of collector UTxO references to distribute rewards from'),
     },
@@ -33,7 +30,7 @@ export function registerStakingRewardTools(server: McpServer): void {
               stakingManagerOutput.utxo,
               collectorTxHashes,
               params,
-              lucid,
+              lucid
             );
             return txBuilder.complete();
           },
@@ -41,7 +38,7 @@ export function registerStakingRewardTools(server: McpServer): void {
             type: 'distribute_staking_rewards',
             description: 'Distribute ADA rewards from collector UTxOs to staking positions',
             inputs: { address, collectorTxHashes: JSON.stringify(collectorTxHashes) },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -57,6 +54,6 @@ export function registerStakingRewardTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

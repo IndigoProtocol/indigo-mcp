@@ -28,7 +28,7 @@ export function registerCollectorTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   // 2. store_on_ipfs - POST /web3/store
@@ -54,7 +54,7 @@ export function registerCollectorTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   // 3. retrieve_from_ipfs - GET /web3/retrieve/{cid}
@@ -80,6 +80,6 @@ export function registerCollectorTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

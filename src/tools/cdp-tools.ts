@@ -56,7 +56,7 @@ export function registerCdpTools(server: McpServer): void {
               text: JSON.stringify(
                 { cdps: paginated, total, limit: effectiveLimit, offset: effectiveOffset },
                 null,
-                2,
+                2
               ),
             },
           ],
@@ -72,7 +72,7 @@ export function registerCdpTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -99,16 +99,14 @@ export function registerCdpTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
     'get_cdps_by_address',
     'Get all CDPs/loans for a specific Cardano address',
     {
-      address: z
-        .string()
-        .describe('Cardano bech32 address (addr1... or addr_test1...)'),
+      address: z.string().describe('Cardano bech32 address (addr1... or addr_test1...)'),
     },
     async ({ address }) => {
       try {
@@ -130,7 +128,7 @@ export function registerCdpTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -159,7 +157,7 @@ export function registerCdpTools(server: McpServer): void {
                 text: JSON.stringify(
                   { message: 'No CDPs found for this owner', owner: pkh },
                   null,
-                  2,
+                  2
                 ),
               },
             ],
@@ -219,7 +217,7 @@ export function registerCdpTools(server: McpServer): void {
                   note: 'Collateral ratios are approximate and do not account for accrued interest',
                 },
                 null,
-                2,
+                2
               ),
             },
           ],
@@ -235,6 +233,6 @@ export function registerCdpTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

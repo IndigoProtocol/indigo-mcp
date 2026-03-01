@@ -28,17 +28,11 @@ function getNetwork(lucid: LucidEvolution): Network {
 async function findIAssetUtxo(
   asset: string,
   params: SystemParams,
-  lucid: LucidEvolution,
+  lucid: LucidEvolution
 ): Promise<{ utxo: UTxO; datum: IAssetContent }> {
   const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.cdpHash,
-  );
-  const utxos = await lucid.utxosAtWithUnit(
-    cdpAddress,
-    assetClassToUnit(iAssetAuthAc),
-  );
+  const cdpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpHash);
+  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
   const assetHex = fromText(asset);
   for (const utxo of utxos) {
     try {
@@ -58,10 +52,7 @@ async function findIAssetUtxo(
  */
 async function findCdpCreatorUtxo(params: SystemParams, lucid: LucidEvolution) {
   const nftAc = fromSystemParamsAsset(params.cdpCreatorParams.cdpCreatorNft);
-  const address = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.cdpCreatorHash,
-  );
+  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpCreatorHash);
   const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
   if (utxos.length !== 1) {
     throw new Error(`Expected a single CDP creator UTxO, found ${utxos.length}`);
@@ -73,10 +64,7 @@ async function findCdpCreatorUtxo(params: SystemParams, lucid: LucidEvolution) {
  * Find a collector UTxO at the collector validator address.
  */
 async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.collectorHash,
-  );
+  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.collectorHash);
   const utxos = await lucid.utxosAt(address);
   if (utxos.length === 0) {
     throw new Error('No collector UTxOs found');
@@ -87,10 +75,7 @@ async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
 /**
  * Find the price oracle UTxO for a given iAsset.
  */
-async function findPriceOracleUtxo(
-  iAssetDatum: IAssetContent,
-  lucid: LucidEvolution,
-) {
+async function findPriceOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
   const priceInfo = iAssetDatum.price as
     | { Delisted: unknown }
     | { Oracle: { content: { oracleNft: { currencySymbol: string; tokenName: string } } } };
@@ -105,10 +90,7 @@ async function findPriceOracleUtxo(
 /**
  * Find the interest oracle UTxO for a given iAsset.
  */
-async function findInterestOracleUtxo(
-  iAssetDatum: IAssetContent,
-  lucid: LucidEvolution,
-) {
+async function findInterestOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
   const nft = iAssetDatum.interestOracleNft;
   const oracleUnit = nft.currencySymbol + nft.tokenName;
   return lucid.utxoByUnit(oracleUnit);
@@ -119,12 +101,9 @@ async function findInterestOracleUtxo(
  */
 async function findAllLrpUtxos(
   params: SystemParams,
-  lucid: LucidEvolution,
+  lucid: LucidEvolution
 ): Promise<[UTxO, LRPDatum][]> {
-  const lrpAddress = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.lrpHash,
-  );
+  const lrpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.lrpHash);
   const utxos = await lucid.utxosAt(lrpAddress);
   const result: [UTxO, LRPDatum][] = [];
   for (const utxo of utxos) {
@@ -183,7 +162,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
               params,
               lucid,
               allLrps,
-              currentSlot,
+              currentSlot
             );
             return txBuilder.complete();
           },
@@ -191,7 +170,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
             type: 'leverage_cdp',
             description: `Open ${leverage}x leveraged ${asset} CDP with ${baseCollateral} lovelace base collateral`,
             inputs: { address, asset, leverage: String(leverage), baseCollateral },
-          },
+          }
         );
 
         return {
@@ -199,13 +178,15 @@ export function registerLeverageCdpTools(server: McpServer): void {
         };
       } catch (error) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: `Error building leverage_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error building leverage_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
           isError: true,
         };
       }
-    },
+    }
   );
 }

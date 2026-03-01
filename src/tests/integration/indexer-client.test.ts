@@ -32,7 +32,7 @@ describe('indexer client', () => {
     const client = getIndexerClient();
 
     expect(client.defaults.baseURL).toBe(
-      process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api/v1',
+      process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api/v1'
     );
   });
 

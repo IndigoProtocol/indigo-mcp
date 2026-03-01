@@ -41,7 +41,7 @@ export function registerRedemptionTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -72,7 +72,7 @@ export function registerRedemptionTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -98,7 +98,7 @@ export function registerRedemptionTools(server: McpServer): void {
                   entries: sorted,
                 },
                 null,
-                2,
+                2
               ),
             },
           ],
@@ -114,6 +114,6 @@ export function registerRedemptionTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

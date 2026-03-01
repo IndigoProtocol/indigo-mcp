@@ -122,7 +122,10 @@ describe('analytics tools', () => {
         switch (url) {
           case '/assets/':
             return Promise.resolve({
-              data: [{ name: 'iUSD', price: { price: 1.0 } }, { name: 'iBTC', price: { price: 60000 } }],
+              data: [
+                { name: 'iUSD', price: { price: 1.0 } },
+                { name: 'iBTC', price: { price: 60000 } },
+              ],
             });
           case '/analytics/ada':
             return Promise.resolve({ data: 0.45 });

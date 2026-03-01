@@ -49,7 +49,7 @@ export function registerDexTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -78,7 +78,7 @@ export function registerDexTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -105,6 +105,6 @@ export function registerDexTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

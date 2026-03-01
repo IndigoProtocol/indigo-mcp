@@ -12,7 +12,12 @@ export function registerGovernanceTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching protocol params: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching protocol params: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -28,7 +33,12 @@ export function registerGovernanceTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching temperature checks: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching temperature checks: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -44,7 +54,12 @@ export function registerGovernanceTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching sync status: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching sync status: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -60,7 +75,12 @@ export function registerGovernanceTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching polls: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching polls: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }

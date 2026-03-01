@@ -26,33 +26,28 @@ export function registerStakingTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
-  server.tool(
-    'get_staking_positions',
-    'Get all open INDY staking positions',
-    {},
-    async () => {
-      try {
-        const client = getIndexerClient();
-        const response = await client.get('/staking/positions');
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Error fetching staking positions: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    },
-  );
+  server.tool('get_staking_positions', 'Get all open INDY staking positions', {}, async () => {
+    try {
+      const client = getIndexerClient();
+      const response = await client.get('/staking/positions');
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching staking positions: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
 
   server.tool(
     'get_staking_positions_by_owner',
@@ -79,7 +74,7 @@ export function registerStakingTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -107,6 +102,6 @@ export function registerStakingTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

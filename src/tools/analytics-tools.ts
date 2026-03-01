@@ -13,7 +13,12 @@ export function registerAnalyticsTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching TVL: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching TVL: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -29,7 +34,12 @@ export function registerAnalyticsTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching APR rewards: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching APR rewards: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -49,11 +59,16 @@ export function registerAnalyticsTools(server: McpServer): void {
         };
       } catch (error) {
         return {
-          content: [{ type: 'text' as const, text: `Error fetching APR by key: ${error instanceof Error ? error.message : String(error)}` }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching APR by key: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
           isError: true,
         };
       }
-    },
+    }
   );
 
   // 4. get_dex_yields - No params → GET /dex/yields
@@ -66,7 +81,12 @@ export function registerAnalyticsTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching DEX yields: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching DEX yields: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -103,7 +123,12 @@ export function registerAnalyticsTools(server: McpServer): void {
       };
     } catch (error) {
       return {
-        content: [{ type: 'text' as const, text: `Error fetching protocol stats: ${error instanceof Error ? error.message : String(error)}` }],
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching protocol stats: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
         isError: true,
       };
     }

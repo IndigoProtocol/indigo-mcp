@@ -18,26 +18,19 @@ import { AssetParam } from '../utils/validators.js';
 /**
  * Find the stability pool UTxO for a given asset.
  */
-async function findStabilityPoolUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution,
-) {
+async function findStabilityPoolUtxo(asset: string, params: SystemParams, lucid: LucidEvolution) {
   const spTokenAc = fromSystemParamsAsset(params.stabilityPoolParams.stabilityPoolToken);
   const spAddress = createScriptAddress(
     lucid.config().network!,
-    params.validatorHashes.stabilityPoolHash,
+    params.validatorHashes.stabilityPoolHash
   );
-  const utxos = await lucid.utxosAtWithUnit(
-    spAddress,
-    assetClassToUnit(spTokenAc),
-  );
+  const utxos = await lucid.utxosAtWithUnit(spAddress, assetClassToUnit(spTokenAc));
   const assetHex = fromText(asset);
   const spUnit = spTokenAc.currencySymbol + assetHex;
   const matched = utxos.filter((u) => u.assets[spUnit] !== undefined);
   return matchSingle(
     matched,
-    (xs) => new Error(`Expected exactly one stability pool UTxO for ${asset}, found ${xs.length}`),
+    (xs) => new Error(`Expected exactly one stability pool UTxO for ${asset}, found ${xs.length}`)
   );
 }
 
@@ -46,10 +39,7 @@ async function findStabilityPoolUtxo(
  */
 async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
   const nftAc = fromSystemParamsAsset(params.govParams.govNFT);
-  const address = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.govHash,
-  );
+  const address = createScriptAddress(lucid.config().network!, params.validatorHashes.govHash);
   const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
   return matchSingle(utxos, (_) => new Error('Expected a single governance UTxO'));
 }
@@ -57,26 +47,16 @@ async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
 /**
  * Resolve the iAsset state UTxO for a given asset name.
  */
-async function findIAssetUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution,
-) {
+async function findIAssetUtxo(asset: string, params: SystemParams, lucid: LucidEvolution) {
   const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.cdpHash,
-  );
-  const utxos = await lucid.utxosAtWithUnit(
-    cdpAddress,
-    assetClassToUnit(iAssetAuthAc),
-  );
+  const cdpAddress = createScriptAddress(lucid.config().network!, params.validatorHashes.cdpHash);
+  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
   const assetHex = fromText(asset);
   const iAssetUnit = iAssetAuthAc.currencySymbol + assetHex;
   const matched = utxos.filter((u) => u.assets[iAssetUnit] !== undefined);
   return matchSingle(
     matched,
-    (xs) => new Error(`Expected exactly one iAsset UTxO for ${asset}, found ${xs.length}`),
+    (xs) => new Error(`Expected exactly one iAsset UTxO for ${asset}, found ${xs.length}`)
   );
 }
 
@@ -86,7 +66,7 @@ async function findIAssetUtxo(
 async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
   const address = createScriptAddress(
     lucid.config().network!,
-    params.validatorHashes.collectorHash,
+    params.validatorHashes.collectorHash
   );
   const utxos = await lucid.utxosAt(address);
   if (utxos.length === 0) {
@@ -102,7 +82,9 @@ export function registerSpRequestTools(server: McpServer): void {
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam.describe('iAsset of the stability pool (iUSD, iBTC, iETH, or iSOL)'),
-      accountTxHash: z.string().describe('Transaction hash of the account UTxO with the pending request'),
+      accountTxHash: z
+        .string()
+        .describe('Transaction hash of the account UTxO with the pending request'),
       accountOutputIndex: z.number().describe('Output index of the account UTxO'),
     },
     async ({ address, asset, accountTxHash, accountOutputIndex }) => {
@@ -117,13 +99,12 @@ export function registerSpRequestTools(server: McpServer): void {
             ]);
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
-            const [stabilityPoolUtxo, govUtxo, iAssetUtxo, collectorUtxo] =
-              await Promise.all([
-                findStabilityPoolUtxo(asset, params, lucid),
-                findGovUtxo(params, lucid),
-                findIAssetUtxo(asset, params, lucid),
-                findCollectorUtxo(params, lucid),
-              ]);
+            const [stabilityPoolUtxo, govUtxo, iAssetUtxo, collectorUtxo] = await Promise.all([
+              findStabilityPoolUtxo(asset, params, lucid),
+              findGovUtxo(params, lucid),
+              findIAssetUtxo(asset, params, lucid),
+              findCollectorUtxo(params, lucid),
+            ]);
 
             const txBuilder = await processSpRequest(
               asset,
@@ -134,7 +115,7 @@ export function registerSpRequestTools(server: McpServer): void {
               undefined,
               params,
               lucid,
-              collectorUtxo,
+              collectorUtxo
             );
             return txBuilder.complete();
           },
@@ -147,7 +128,7 @@ export function registerSpRequestTools(server: McpServer): void {
               accountTxHash,
               accountOutputIndex: String(accountOutputIndex),
             },
-          },
+          }
         );
 
         return {
@@ -164,7 +145,7 @@ export function registerSpRequestTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -172,7 +153,9 @@ export function registerSpRequestTools(server: McpServer): void {
     'Cancel a pending stability pool request. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
-      accountTxHash: z.string().describe('Transaction hash of the account UTxO with the pending request'),
+      accountTxHash: z
+        .string()
+        .describe('Transaction hash of the account UTxO with the pending request'),
       accountOutputIndex: z.number().describe('Output index of the account UTxO'),
     },
     async ({ address, accountTxHash, accountOutputIndex }) => {
@@ -197,7 +180,7 @@ export function registerSpRequestTools(server: McpServer): void {
               accountTxHash,
               accountOutputIndex: String(accountOutputIndex),
             },
-          },
+          }
         );
 
         return {
@@ -214,6 +197,6 @@ export function registerSpRequestTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

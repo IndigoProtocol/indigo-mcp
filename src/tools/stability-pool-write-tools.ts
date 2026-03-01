@@ -27,7 +27,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             type: 'create_sp_account',
             description: `Create stability pool account for ${asset}`,
             inputs: { address, asset, amount },
-          },
+          }
         );
 
         return {
@@ -44,7 +44,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -53,7 +53,9 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam.describe('iAsset of the stability pool (iUSD, iBTC, iETH, or iSOL)'),
-      amount: z.string().describe('Amount to adjust (positive = deposit, negative = withdraw, in smallest unit)'),
+      amount: z
+        .string()
+        .describe('Amount to adjust (positive = deposit, negative = withdraw, in smallest unit)'),
       accountTxHash: z.string().describe('Transaction hash of the account UTxO'),
       accountOutputIndex: z.number().describe('Output index of the account UTxO'),
     },
@@ -73,15 +75,21 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
               BigInt(amount),
               accountUtxo,
               params,
-              lucid,
+              lucid
             );
             return txBuilder.complete();
           },
           {
             type: 'adjust_sp_account',
             description: `Adjust stability pool account for ${asset}`,
-            inputs: { address, asset, amount, accountTxHash, accountOutputIndex: String(accountOutputIndex) },
-          },
+            inputs: {
+              address,
+              asset,
+              amount,
+              accountTxHash,
+              accountOutputIndex: String(accountOutputIndex),
+            },
+          }
         );
 
         return {
@@ -98,7 +106,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -127,7 +135,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             type: 'close_sp_account',
             description: 'Close stability pool account and withdraw all funds',
             inputs: { address, accountTxHash, accountOutputIndex: String(accountOutputIndex) },
-          },
+          }
         );
 
         return {
@@ -144,6 +152,6 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

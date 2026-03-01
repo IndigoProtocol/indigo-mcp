@@ -28,7 +28,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               BigInt(amount),
               params,
               lucid,
-              stakingManagerOutput.utxo,
+              stakingManagerOutput.utxo
             );
             return txBuilder.complete();
           },
@@ -36,7 +36,7 @@ export function registerStakingWriteTools(server: McpServer): void {
             type: 'open_staking_position',
             description: 'Create a new INDY staking position',
             inputs: { address, amount },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -52,7 +52,7 @@ export function registerStakingWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -84,15 +84,20 @@ export function registerStakingWriteTools(server: McpServer): void {
               params,
               lucid,
               currentSlot,
-              stakingManagerOutput.utxo,
+              stakingManagerOutput.utxo
             );
             return txBuilder.complete();
           },
           {
             type: 'adjust_staking_position',
             description: 'Adjust an existing INDY staking position',
-            inputs: { address, amount, positionTxHash, positionOutputIndex: String(positionOutputIndex) },
-          },
+            inputs: {
+              address,
+              amount,
+              positionTxHash,
+              positionOutputIndex: String(positionOutputIndex),
+            },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -108,7 +113,7 @@ export function registerStakingWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -136,7 +141,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               params,
               lucid,
               currentSlot,
-              stakingManagerOutput.utxo,
+              stakingManagerOutput.utxo
             );
             return txBuilder.complete();
           },
@@ -144,7 +149,7 @@ export function registerStakingWriteTools(server: McpServer): void {
             type: 'close_staking_position',
             description: 'Close an INDY staking position and unstake all INDY',
             inputs: { address, positionTxHash, positionOutputIndex: String(positionOutputIndex) },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -160,6 +165,6 @@ export function registerStakingWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

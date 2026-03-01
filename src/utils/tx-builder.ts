@@ -1,11 +1,11 @@
-import type { LucidEvolution, TxSignBuilder } from "@lucid-evolution/lucid";
-import type { UnsignedTxResult, TxSummary } from "../types/tx-types.js";
-import { getLucid } from "./lucid-provider.js";
+import type { LucidEvolution, TxSignBuilder } from '@lucid-evolution/lucid';
+import type { UnsignedTxResult, TxSummary } from '../types/tx-types.js';
+import { getLucid } from './lucid-provider.js';
 
 export async function buildUnsignedTx(
   address: string,
   buildFn: (lucid: LucidEvolution) => Promise<TxSignBuilder>,
-  summary: TxSummary,
+  summary: TxSummary
 ): Promise<UnsignedTxResult> {
   const lucid = await getLucid();
 

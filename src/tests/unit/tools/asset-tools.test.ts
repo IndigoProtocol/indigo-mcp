@@ -32,7 +32,10 @@ describe('asset tools', () => {
 
   describe('get_assets', () => {
     it('should return all assets', async () => {
-      const mockAssets = [{ name: 'iUSD', price: { price: 1.0 } }, { name: 'iBTC', price: { price: 60000 } }];
+      const mockAssets = [
+        { name: 'iUSD', price: { price: 1.0 } },
+        { name: 'iBTC', price: { price: 60000 } },
+      ];
       mockGet.mockResolvedValue({ data: mockAssets });
 
       const result = await tools.get('get_assets')!({});
@@ -55,7 +58,10 @@ describe('asset tools', () => {
 
   describe('get_asset', () => {
     it('should return a specific asset', async () => {
-      const mockAssets = [{ name: 'iUSD', price: { price: 1.0 } }, { name: 'iBTC', price: { price: 60000 } }];
+      const mockAssets = [
+        { name: 'iUSD', price: { price: 1.0 } },
+        { name: 'iBTC', price: { price: 60000 } },
+      ];
       mockGet.mockResolvedValue({ data: mockAssets });
 
       const result = await tools.get('get_asset')!({ asset: 'iUSD' });

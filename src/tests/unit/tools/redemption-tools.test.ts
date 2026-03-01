@@ -59,7 +59,10 @@ describe('redemption tools', () => {
 
       await tools.get('get_order_book')!({ owners: ['owner1'] });
 
-      expect(mockPost).toHaveBeenCalledWith('/order-book/', { asset: undefined, owners: ['owner1'] });
+      expect(mockPost).toHaveBeenCalledWith('/order-book/', {
+        asset: undefined,
+        owners: ['owner1'],
+      });
     });
 
     it('should return error on failure', async () => {

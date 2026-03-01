@@ -123,7 +123,9 @@ describe('dex tools', () => {
       const result = await tools.get('get_blockfrost_balances')!({ address: 'addr1test' });
       const parsed = JSON.parse(result.content[0].text);
 
-      expect(mockGet).toHaveBeenCalledWith('/blockfrost/balances', { params: { address: 'addr1test' } });
+      expect(mockGet).toHaveBeenCalledWith('/blockfrost/balances', {
+        params: { address: 'addr1test' },
+      });
       expect(parsed).toEqual(mockData);
     });
 

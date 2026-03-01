@@ -32,7 +32,7 @@ export function registerStabilityPoolTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -61,7 +61,7 @@ export function registerStabilityPoolTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -74,7 +74,9 @@ export function registerStabilityPoolTools(server: McpServer): void {
       try {
         const convertedOwners = owners.map((o) => extractPaymentCredential(o));
         const client = getIndexerClient();
-        const response = await client.post('/stability-pools/accounts', { owners: convertedOwners });
+        const response = await client.post('/stability-pools/accounts', {
+          owners: convertedOwners,
+        });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
         };
@@ -89,6 +91,6 @@ export function registerStabilityPoolTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

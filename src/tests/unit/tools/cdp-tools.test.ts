@@ -143,7 +143,13 @@ describe('cdp tools', () => {
         if (url === '/loans/') {
           return Promise.resolve({
             data: [
-              { owner: 'abc123', asset: 'iUSD', collateral: 300_000_000, minted: 100_000_000, minRatio: 150 },
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 300_000_000,
+                minted: 100_000_000,
+                minRatio: 150,
+              },
             ],
           });
         }
@@ -167,7 +173,13 @@ describe('cdp tools', () => {
         if (url === '/loans/') {
           return Promise.resolve({
             data: [
-              { owner: 'abc123', asset: 'iUSD', collateral: 160_000_000, minted: 100_000_000, minRatio: 150 },
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 160_000_000,
+                minted: 100_000_000,
+                minRatio: 150,
+              },
             ],
           });
         }
@@ -189,7 +201,13 @@ describe('cdp tools', () => {
         if (url === '/loans/') {
           return Promise.resolve({
             data: [
-              { owner: 'abc123', asset: 'iUSD', collateral: 120_000_000, minted: 100_000_000, minRatio: 150 },
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 120_000_000,
+                minted: 100_000_000,
+                minRatio: 150,
+              },
             ],
           });
         }
@@ -211,7 +229,13 @@ describe('cdp tools', () => {
         if (url === '/loans/') {
           return Promise.resolve({
             data: [
-              { owner: 'abc123', asset: 'iUSD', collateral: 100_000_000, minted: 100_000_000, minRatio: 150 },
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 100_000_000,
+                minted: 100_000_000,
+                minRatio: 150,
+              },
             ],
           });
         }

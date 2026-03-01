@@ -20,26 +20,16 @@ import { AssetParam } from '../utils/validators.js';
 /**
  * Resolve the iAsset state UTxO for a given asset name (e.g. "iUSD").
  */
-async function findIAssetUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution,
-) {
+async function findIAssetUtxo(asset: string, params: SystemParams, lucid: LucidEvolution) {
   const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.cdpHash,
-  );
-  const utxos = await lucid.utxosAtWithUnit(
-    cdpAddress,
-    assetClassToUnit(iAssetAuthAc),
-  );
+  const cdpAddress = createScriptAddress(lucid.config().network!, params.validatorHashes.cdpHash);
+  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
   const assetHex = fromText(asset);
   const iAssetUnit = iAssetAuthAc.currencySymbol + assetHex;
   const matched = utxos.filter((u) => u.assets[iAssetUnit] !== undefined);
   return matchSingle(
     matched,
-    (xs) => new Error(`Expected exactly one iAsset UTxO for ${asset}, found ${xs.length}`),
+    (xs) => new Error(`Expected exactly one iAsset UTxO for ${asset}, found ${xs.length}`)
   );
 }
 
@@ -48,10 +38,12 @@ async function findIAssetUtxo(
  */
 async function findPriceOracleUtxo(
   iAssetUtxo: Awaited<ReturnType<typeof findIAssetUtxo>>,
-  lucid: LucidEvolution,
+  lucid: LucidEvolution
 ) {
   const datum = parseIAssetDatumOrThrow(getInlineDatumOrThrow(iAssetUtxo));
-  const priceInfo = datum.price as { Oracle?: { content: { oracleNft: { currencySymbol: string; tokenName: string } } } };
+  const priceInfo = datum.price as {
+    Oracle?: { content: { oracleNft: { currencySymbol: string; tokenName: string } } };
+  };
   if (!priceInfo.Oracle) {
     throw new Error('iAsset is delisted, cannot perform CDP operations');
   }
@@ -65,7 +57,7 @@ async function findPriceOracleUtxo(
  */
 async function findInterestOracleUtxo(
   iAssetUtxo: Awaited<ReturnType<typeof findIAssetUtxo>>,
-  lucid: LucidEvolution,
+  lucid: LucidEvolution
 ) {
   const datum = parseIAssetDatumOrThrow(getInlineDatumOrThrow(iAssetUtxo));
   const oracleNft = datum.interestOracleNft;
@@ -78,10 +70,7 @@ async function findInterestOracleUtxo(
  */
 async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
   const nftAc = fromSystemParamsAsset(params.govParams.govNFT);
-  const address = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.govHash,
-  );
+  const address = createScriptAddress(lucid.config().network!, params.validatorHashes.govHash);
   const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
   return matchSingle(utxos, (_) => new Error('Expected a single governance UTxO'));
 }
@@ -90,10 +79,7 @@ async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
  * Find the treasury UTxO at the treasury validator address.
  */
 async function findTreasuryUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.treasuryHash,
-  );
+  const address = createScriptAddress(lucid.config().network!, params.validatorHashes.treasuryHash);
   const utxos = await lucid.utxosAt(address);
   return matchSingle(utxos, (_) => new Error('Expected a single treasury UTxO'));
 }
@@ -104,7 +90,7 @@ async function findTreasuryUtxo(params: SystemParams, lucid: LucidEvolution) {
 async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
   const address = createScriptAddress(
     lucid.config().network!,
-    params.validatorHashes.collectorHash,
+    params.validatorHashes.collectorHash
   );
   const utxos = await lucid.utxosAt(address);
   if (utxos.length === 0) {
@@ -156,7 +142,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               treasuryUtxo,
               params,
               lucid,
-              currentSlot,
+              currentSlot
             );
             return txBuilder.complete();
           },
@@ -164,7 +150,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
             type: 'mint_cdp',
             description: `Mint ${amount} ${asset} from CDP`,
             inputs: { address, asset, cdpTxHash, cdpOutputIndex: String(cdpOutputIndex), amount },
-          },
+          }
         );
 
         return {
@@ -172,14 +158,16 @@ export function registerCdpMintBurnTools(server: McpServer): void {
         };
       } catch (error) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: `Error building mint_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error building mint_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -224,7 +212,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               treasuryUtxo,
               params,
               lucid,
-              currentSlot,
+              currentSlot
             );
             return txBuilder.complete();
           },
@@ -232,7 +220,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
             type: 'burn_cdp',
             description: `Burn ${amount} ${asset} to reduce CDP debt`,
             inputs: { address, asset, cdpTxHash, cdpOutputIndex: String(cdpOutputIndex), amount },
-          },
+          }
         );
 
         return {
@@ -240,13 +228,15 @@ export function registerCdpMintBurnTools(server: McpServer): void {
         };
       } catch (error) {
         return {
-          content: [{
-            type: 'text' as const,
-            text: `Error building burn_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error building burn_cdp transaction: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
           isError: true,
         };
       }
-    },
+    }
   );
 }

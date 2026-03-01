@@ -1,13 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fromText } from '@lucid-evolution/lucid';
-import {
-  openLrp,
-  cancelLrp,
-  adjustLrp,
-  claimLrp,
-  redeemLrp,
-} from '@indigo-labs/indigo-sdk';
+import { openLrp, cancelLrp, adjustLrp, claimLrp, redeemLrp } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
@@ -28,7 +22,9 @@ export function registerLrpWriteTools(server: McpServer): void {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam,
       lovelacesAmount: z.string().describe('ADA amount in lovelace to deposit into the LRP'),
-      maxPrice: z.string().describe('Max price as an on-chain integer string (the getOnChainInt value)'),
+      maxPrice: z
+        .string()
+        .describe('Max price as an on-chain integer string (the getOnChainInt value)'),
     },
     async ({ address, asset, lovelacesAmount, maxPrice }) => {
       try {
@@ -43,7 +39,7 @@ export function registerLrpWriteTools(server: McpServer): void {
               BigInt(lovelacesAmount),
               maxPriceDecimal,
               lucid,
-              params,
+              params
             );
             return txBuilder.complete();
           },
@@ -51,7 +47,7 @@ export function registerLrpWriteTools(server: McpServer): void {
             type: 'open_lrp',
             description: `Open ${asset} LRP with ${lovelacesAmount} lovelace`,
             inputs: { address, asset, lovelacesAmount, maxPrice },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -67,7 +63,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -92,7 +88,7 @@ export function registerLrpWriteTools(server: McpServer): void {
             type: 'cancel_lrp',
             description: 'Cancel an LRP position',
             inputs: { address, lrpTxHash, lrpOutputIndex: String(lrpOutputIndex) },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -108,7 +104,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -118,8 +114,13 @@ export function registerLrpWriteTools(server: McpServer): void {
       address: z.string().describe('User Cardano bech32 address'),
       lrpTxHash: z.string().describe('Transaction hash of the LRP UTxO'),
       lrpOutputIndex: z.number().describe('Output index of the LRP UTxO'),
-      lovelacesAdjustAmount: z.string().describe('Lovelace adjustment amount (positive to add, negative to remove)'),
-      newMaxPrice: z.string().optional().describe('Optional new max price as an on-chain integer string'),
+      lovelacesAdjustAmount: z
+        .string()
+        .describe('Lovelace adjustment amount (positive to add, negative to remove)'),
+      newMaxPrice: z
+        .string()
+        .optional()
+        .describe('Optional new max price as an on-chain integer string'),
     },
     async ({ address, lrpTxHash, lrpOutputIndex, lovelacesAdjustAmount, newMaxPrice }) => {
       try {
@@ -128,15 +129,14 @@ export function registerLrpWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const lrpOutRef = { txHash: lrpTxHash, outputIndex: lrpOutputIndex };
-            const newMaxPriceDecimal = newMaxPrice !== undefined
-              ? parseMaxPrice(newMaxPrice)
-              : undefined;
+            const newMaxPriceDecimal =
+              newMaxPrice !== undefined ? parseMaxPrice(newMaxPrice) : undefined;
             const txBuilder = await adjustLrp(
               lucid,
               lrpOutRef,
               BigInt(lovelacesAdjustAmount),
               newMaxPriceDecimal,
-              params,
+              params
             );
             return txBuilder.complete();
           },
@@ -150,7 +150,7 @@ export function registerLrpWriteTools(server: McpServer): void {
               lovelacesAdjustAmount,
               ...(newMaxPrice !== undefined ? { newMaxPrice } : {}),
             },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -166,7 +166,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -191,7 +191,7 @@ export function registerLrpWriteTools(server: McpServer): void {
             type: 'claim_lrp',
             description: 'Claim iAssets from an LRP position',
             inputs: { address, lrpTxHash, lrpOutputIndex: String(lrpOutputIndex) },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -207,7 +207,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -221,7 +221,7 @@ export function registerLrpWriteTools(server: McpServer): void {
             txHash: z.string().describe('Transaction hash of the LRP UTxO'),
             outputIndex: z.number().describe('Output index of the LRP UTxO'),
             iAssetAmount: z.string().describe('Amount of iAssets to redeem against this LRP'),
-          }),
+          })
         )
         .describe('Array of LRP positions and amounts to redeem against'),
       priceOracleTxHash: z.string().describe('Transaction hash of the price oracle UTxO'),
@@ -260,7 +260,7 @@ export function registerLrpWriteTools(server: McpServer): void {
               priceOracleOutRef,
               iassetOutRef,
               lucid,
-              params,
+              params
             );
             return txBuilder.complete();
           },
@@ -275,7 +275,7 @@ export function registerLrpWriteTools(server: McpServer): void {
               iassetTxHash,
               iassetOutputIndex: String(iassetOutputIndex),
             },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -291,6 +291,6 @@ export function registerLrpWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }

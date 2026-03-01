@@ -28,17 +28,11 @@ function getNetwork(lucid: LucidEvolution): Network {
 async function findIAssetUtxo(
   asset: string,
   params: SystemParams,
-  lucid: LucidEvolution,
+  lucid: LucidEvolution
 ): Promise<{ utxo: UTxO; datum: IAssetContent }> {
   const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.cdpHash,
-  );
-  const utxos = await lucid.utxosAtWithUnit(
-    cdpAddress,
-    assetClassToUnit(iAssetAuthAc),
-  );
+  const cdpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpHash);
+  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
   const assetHex = fromText(asset);
   for (const utxo of utxos) {
     try {
@@ -83,7 +77,7 @@ export function registerOracleWriteTools(server: McpServer): void {
               oracleParams,
               BigInt(newInterestRate),
               lucid,
-              interestOracleNft,
+              interestOracleNft
             );
             return txBuilder.complete();
           },
@@ -91,7 +85,7 @@ export function registerOracleWriteTools(server: McpServer): void {
             type: 'feed_interest_oracle',
             description: `Feed interest rate ${newInterestRate} for ${asset} oracle`,
             inputs: { address, asset, newInterestRate, biasTime, owner },
-          },
+          }
         );
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -107,7 +101,7 @@ export function registerOracleWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 
   server.tool(
@@ -117,11 +111,20 @@ export function registerOracleWriteTools(server: McpServer): void {
       address: z.string().describe('Admin Cardano bech32 address'),
       initialUnitaryInterest: z.string().describe('Initial unitary interest as bigint string'),
       initialInterestRate: z.string().describe('Initial interest rate as bigint string'),
-      initialLastInterestUpdate: z.string().describe('Initial last interest update timestamp (milliseconds) as bigint string'),
+      initialLastInterestUpdate: z
+        .string()
+        .describe('Initial last interest update timestamp (milliseconds) as bigint string'),
       biasTime: z.string().describe('Oracle bias time in milliseconds as bigint string'),
       owner: z.string().describe('Oracle operator pub key hash (hex)'),
     },
-    async ({ address, initialUnitaryInterest, initialInterestRate, initialLastInterestUpdate, biasTime, owner }) => {
+    async ({
+      address,
+      initialUnitaryInterest,
+      initialInterestRate,
+      initialLastInterestUpdate,
+      biasTime,
+      owner,
+    }) => {
       try {
         let mintedAssetClass: AssetClass | undefined;
 
@@ -137,7 +140,7 @@ export function registerOracleWriteTools(server: McpServer): void {
               BigInt(initialInterestRate),
               BigInt(initialLastInterestUpdate),
               oracleParams,
-              lucid,
+              lucid
             );
             mintedAssetClass = assetClass;
             return txBuilder.complete();
@@ -153,7 +156,7 @@ export function registerOracleWriteTools(server: McpServer): void {
               biasTime,
               owner,
             },
-          },
+          }
         );
 
         const response = {
@@ -180,6 +183,6 @@ export function registerOracleWriteTools(server: McpServer): void {
           isError: true,
         };
       }
-    },
+    }
   );
 }
