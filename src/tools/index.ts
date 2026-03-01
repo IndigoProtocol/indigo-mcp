@@ -12,6 +12,12 @@ import { registerStabilityPoolTools } from './stability-pool-tools.js';
 import { registerStabilityPoolWriteTools } from './stability-pool-write-tools.js';
 import { registerStakingTools } from './staking-tools.js';
 import { registerStakingWriteTools } from './staking-write-tools.js';
+import { registerCdpLiquidationTools } from './cdp-liquidation-tools.js';
+import { registerLeverageCdpTools } from './leverage-cdp-tools.js';
+import { registerLrpWriteTools } from './lrp-write-tools.js';
+import { registerOracleWriteTools } from './oracle-write-tools.js';
+import { registerSpRequestTools } from './sp-request-tools.js';
+import { registerStakingRewardTools } from './staking-reward-tools.js';
 
 export function registerTools(server: McpServer): void {
   registerAnalyticsTools(server);
@@ -19,12 +25,18 @@ export function registerTools(server: McpServer): void {
   registerCdpTools(server);
   registerCdpMintBurnTools(server);
   registerCdpWriteTools(server);
+  registerCdpLiquidationTools(server);
   registerCollectorTools(server);
   registerDexTools(server);
   registerGovernanceTools(server);
+  registerLeverageCdpTools(server);
+  registerLrpWriteTools(server);
+  registerOracleWriteTools(server);
   registerRedemptionTools(server);
+  registerSpRequestTools(server);
   registerStabilityPoolTools(server);
   registerStabilityPoolWriteTools(server);
   registerStakingTools(server);
+  registerStakingRewardTools(server);
   registerStakingWriteTools(server);
 }

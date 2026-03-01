@@ -15,6 +15,12 @@ MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo 
 - Governance: protocol parameters, polls, temperature checks
 - Redemption order book and queue aggregation
 - DEX proxy: Steelswap swaps, Iris liquidity pools, Blockfrost balances
+- CDP liquidation, redemption, freeze, and merge operations
+- Leveraged CDP opening via LRP positions
+- LRP (Limit Redemption Protocol) position management
+- Oracle interest rate feeding and initialization
+- Stability pool request processing and cancellation
+- Staking reward distribution
 - Collector UTXOs, IPFS storage and retrieval
 
 ## Quick Start
@@ -86,6 +92,22 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 |------|-------------|------------|
 | `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
 | `burn_cdp` | Burn iAssets to reduce CDP debt | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+
+### CDP Liquidation & Redemption Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `liquidate_cdp` | Liquidate an undercollateralized CDP through the stability pool | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
+| `redeem_cdp` | Redeem iAssets from a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: iAsset amount in smallest unit |
+| `freeze_cdp` | Freeze a CDP to prevent further operations | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
+| `merge_cdps` | Merge multiple CDPs into one | `address`: bech32 address; `cdpOutRefs`: array of `{txHash, outputIndex}` (min 2) |
+
+### Leverage CDP Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `leverage_cdp` | Open a leveraged CDP by redeeming against LRP positions | `address`: bech32 address; `asset`: iAsset; `leverage`: multiplier (e.g. 2.0); `baseCollateral`: lovelace amount |
+
 ### Stability Pool Tools
 
 | Tool | Description | Parameters |
@@ -103,6 +125,13 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_staking_positions_by_owner` | Get INDY staking positions for specific owners | `owners`: array of payment key hashes or bech32 addresses |
 | `get_staking_position_by_address` | Get INDY staking positions for a single address | `address`: Cardano bech32 address |
 
+### Stability Pool Request Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `process_sp_request` | Process a pending stability pool request (protocol maintenance) | `address`: bech32 address; `asset`: iAsset; `accountTxHash`: account UTxO tx hash; `accountOutputIndex`: output index |
+| `annul_sp_request` | Cancel a pending stability pool request | `address`: bech32 address; `accountTxHash`: account UTxO tx hash; `accountOutputIndex`: output index |
+
 ### Staking Write Tools
 
 | Tool | Description | Parameters |
@@ -110,6 +139,12 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `open_staking_position` | Stake INDY tokens by creating a new staking position | `address`: bech32 address; `amount`: INDY amount in smallest unit |
 | `adjust_staking_position` | Adjust an existing staking position (add or remove INDY) | `address`: bech32 address; `amount`: positive=stake more, negative=unstake; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
 | `close_staking_position` | Close a staking position and unstake all INDY | `address`: bech32 address; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
+
+### Staking Reward Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `distribute_staking_rewards` | Distribute collected ADA rewards from collector UTxOs to stakers | `address`: bech32 address; `collectorTxHashes`: array of `{txHash, outputIndex}` |
 
 ### Analytics & APR Tools
 
@@ -137,6 +172,23 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 | `get_order_book` | Get open limited redemption positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
 | `get_redemption_orders` | Get redemption orders with optional filters | `timestamp?`: Unix ms; `in_range?`: filter by price range |
 | `get_redemption_queue` | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
+
+### LRP Write Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `open_lrp` | Open a new LRP position with ADA and a max price limit | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string |
+| `cancel_lrp` | Cancel an existing LRP position | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index |
+| `adjust_lrp` | Adjust ADA in an LRP (positive to add, negative to remove) | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price |
+| `claim_lrp` | Claim received iAssets from an LRP position | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index |
+| `redeem_lrp` | Redeem iAssets against one or more LRP positions | `address`: bech32 address; `redemptionLrps`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
+
+### Oracle Write Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `feed_interest_oracle` | Feed a new interest rate to the interest oracle (oracle operator only) | `address`: operator bech32 address; `asset`: iAsset; `newInterestRate`: bigint string; `biasTime`: ms bigint string; `owner`: operator pub key hash |
+| `start_interest_oracle` | Initialize a new interest oracle (admin one-time setup) | `address`: admin bech32 address; `initialUnitaryInterest`; `initialInterestRate`; `initialLastInterestUpdate`; `biasTime`; `owner`: operator pub key hash |
 
 ### DEX Proxy Tools
 
@@ -229,6 +281,12 @@ src/
 │   ├── stability-pool-tools.ts    # 3 stability pool tools
 │   ├── staking-tools.ts           # 4 INDY staking tools
 │   ├── staking-write-tools.ts     # 3 INDY staking write tools
+│   ├── staking-reward-tools.ts    # 1 staking reward distribution tool
+│   ├── cdp-liquidation-tools.ts   # 4 CDP liquidation/redemption/freeze/merge tools
+│   ├── leverage-cdp-tools.ts      # 1 leveraged CDP tool
+│   ├── lrp-write-tools.ts         # 5 LRP write tools
+│   ├── oracle-write-tools.ts      # 2 oracle write tools
+│   ├── sp-request-tools.ts        # 2 SP request processing tools
 │   ├── analytics-tools.ts         # 5 analytics/APR tools
 │   ├── governance-tools.ts        # 4 governance tools
 │   ├── redemption-tools.ts        # 3 redemption/order book tools
