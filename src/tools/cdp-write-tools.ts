@@ -82,8 +82,7 @@ async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
  * Find the treasury UTxO at the treasury validator address.
  */
 async function findTreasuryUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.treasuryHash);
-  const utxos = await lucid.utxosAt(address);
+  const utxos = await lucid.utxosAt({ type: 'Script', hash: params.validatorHashes.treasuryHash });
   if (utxos.length === 0) {
     throw new Error('No treasury UTxOs found');
   }
