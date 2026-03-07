@@ -25,10 +25,16 @@ MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo 
 
 ## Quick Start
 
+Install globally:
+
 ```bash
-npm install
-npm run build
-npm start
+npm install -g @indigoprotocol/indigo-mcp
+```
+
+Or run directly with npx (no install needed):
+
+```bash
+npx @indigoprotocol/indigo-mcp
 ```
 
 ### Docker
@@ -38,23 +44,104 @@ docker build -t indigo-mcp .
 docker run -i indigo-mcp
 ```
 
-## Claude Desktop Configuration
+## Configuration
 
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+> **Note:** `BLOCKFROST_API_KEY` is required for write operations (transaction building). Read-only tools work without it. Get a free key at [blockfrost.io](https://blockfrost.io/).
+
+### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
   "mcpServers": {
     "indigo": {
-      "command": "node",
-      "args": ["/path/to/indigo-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1"
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
   }
 }
 ```
+
+### Claude Code (CLI)
+
+Add to `~/.claude/settings.json` or `.claude/settings.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level):
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
+      }
+    }
+  }
+}
+```
+
+### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
+      }
+    }
+  }
+}
+```
+
+### Any MCP-Compatible Client
+
+Run the server directly via stdio:
+
+```bash
+INDEXER_URL=https://analytics.indigoprotocol.io/api/v1 \
+BLOCKFROST_API_KEY=your-blockfrost-project-id \
+npx @indigoprotocol/indigo-mcp
+```
+
+Or install globally and reference the binary:
+
+```bash
+npm install -g @indigoprotocol/indigo-mcp
+indigo-mcp
+```
+
+For any client that supports MCP over stdio, point it to the `npx @indigoprotocol/indigo-mcp` command with the environment variables above.
 
 ## Available Tools
 

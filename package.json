@@ -29,7 +29,9 @@
     "format": "prettier --write \"src/**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "smithery:build": "bash scripts/smithery-build.sh",
+    "smithery:publish": "bash scripts/smithery-build.sh && npx smithery mcp publish --name indigoprotocol/indigo-mcp --from-build .smithery/stdio"
   },
   "engines": {
     "node": ">=18"
