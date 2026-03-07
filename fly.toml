@@ -1,0 +1,22 @@
+app = 'indigo-mcp'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  MCP_TRANSPORT = 'http'
+  PORT = '3000'
+  INDEXER_URL = 'https://analytics.indigoprotocol.io/api/v1'
+  CARDANO_NETWORK = 'mainnet'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1

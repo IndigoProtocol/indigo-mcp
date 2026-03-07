@@ -24,14 +24,10 @@ export function createServer(): McpServer {
 }
 
 async function startHttpServer(port: number): Promise<void> {
-  const server = createServer();
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-  });
+  process.stderr.write(`Indigo MCP starting HTTP server...\n`);
 
-  await server.connect(transport);
-
-  const httpServer = createHttpServer(async (req, res) => {
+  // Start HTTP server immediately so Fly.io sees the port open
+  const httpServer = createHttpServer((req, res) => {
     const url = new URL(req.url ?? '/', `http://${req.headers.host}`);
 
     if (url.pathname === '/health') {
@@ -41,7 +37,12 @@ async function startHttpServer(port: number): Promise<void> {
     }
 
     if (url.pathname === '/mcp') {
-      await transport.handleRequest(req, res);
+      if (!transport) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Server initializing' }));
+        return;
+      }
+      transport.handleRequest(req, res);
       return;
     }
 
@@ -49,8 +50,18 @@ async function startHttpServer(port: number): Promise<void> {
     res.end('Not found');
   });
 
-  httpServer.listen(port, () => {
-    process.stderr.write(`Indigo MCP HTTP server listening on port ${port}\n`);
+  let transport: StreamableHTTPServerTransport | null = null;
+
+  httpServer.listen(port, '0.0.0.0', async () => {
+    process.stderr.write(`Indigo MCP HTTP server listening on 0.0.0.0:${port}\n`);
+
+    // Initialize MCP server after port is open
+    const server = createServer();
+    transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+    });
+    await server.connect(transport);
+    process.stderr.write(`Indigo MCP server ready\n`);
   });
 }
 

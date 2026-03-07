@@ -1,27 +1,13 @@
-FROM node:20-slim AS build
+FROM node:22-slim
 
 WORKDIR /app
 
-COPY package*.json tsconfig.json tsconfig.build.json ./
-
-RUN npm install
-
-COPY . .
-
-RUN npm run build
-
-FROM node:20-slim
-
-WORKDIR /app
-
-COPY --from=build /app/package*.json ./
-COPY --from=build /app/dist ./dist
-
-RUN npm install --omit=dev
+COPY .smithery/hosted/server.mjs ./server.mjs
+COPY .smithery/hosted/*.wasm ./
 
 ENV MCP_TRANSPORT=http
 ENV PORT=3000
 
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "server.mjs"]
