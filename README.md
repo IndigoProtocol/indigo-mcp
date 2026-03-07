@@ -2,6 +2,7 @@
 
 [![Smithery](https://smithery.ai/badge/@indigoprotocol/indigo-mcp)](https://smithery.ai/server/@indigoprotocol/indigo-mcp)
 [![npm downloads](https://img.shields.io/npm/dm/@indigoprotocol/indigo-mcp)](https://www.npmjs.com/package/@indigoprotocol/indigo-mcp)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/IndigoProtocol/indigo-mcp)
 
 MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo iAsset data, prices, and CDP/loan analytics to LLM agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
