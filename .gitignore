@@ -9,3 +9,5 @@ coverage/
 .idea/
 .vscode/
 .smithery/stdio/
+.smithery/hosted/
+.wrangler/

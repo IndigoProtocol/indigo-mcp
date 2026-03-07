@@ -1,0 +1,7 @@
+name: indigo-mcp
+runtime: typescript
+build:
+  assets:
+    - "node_modules/@anastasia-labs/cardano-multiplatform-lib-nodejs/*.wasm"
+    - "node_modules/@lucid-evolution/uplc/dist/node/*.wasm"
+    - "node_modules/@emurgo/cardano-message-signing-nodejs/*.wasm"
