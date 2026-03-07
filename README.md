@@ -47,6 +47,18 @@ docker build -t indigo-mcp .
 docker run -i indigo-mcp
 ```
 
+### HTTP Transport (Remote)
+
+The server supports HTTP transport for remote/hosted deployments:
+
+```bash
+MCP_TRANSPORT=http PORT=3000 npx @indigoprotocol/indigo-mcp
+```
+
+This starts an HTTP server with:
+- `POST /mcp` — MCP endpoint (Streamable HTTP with SSE)
+- `GET /health` — Health check
+
 ## Configuration
 
 > **Note:** `BLOCKFROST_API_KEY` is required for write operations (transaction building). Read-only tools work without it. Get a free key at [blockfrost.io](https://blockfrost.io/).
@@ -304,6 +316,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `INDEXER_URL` | No | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL |
 | `BLOCKFROST_API_KEY` | For write ops | — | Blockfrost project ID for transaction building |
 | `CARDANO_NETWORK` | No | `mainnet` | Cardano network: `mainnet`, `preprod`, or `preview` |
+| `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` or `http` |
+| `PORT` | No | `3000` | HTTP server port (only used when `MCP_TRANSPORT=http`) |
 
 ## Example Queries
 
