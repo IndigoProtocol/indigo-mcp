@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.indigoprotocol/indigo-mcp",
-  "description": "MCP server for Indigo Protocol on Cardano — iAsset prices, CDP/loan analytics, stability pools, INDY staking, governance, and DEX data",
+  "name": "io.github.IndigoProtocol/indigo-mcp",
+  "description": "Indigo Protocol MCP — iAsset prices, CDP analytics, stability pools, staking & governance",
   "repository": {
     "url": "https://github.com/IndigoProtocol/indigo-mcp",
     "source": "github"

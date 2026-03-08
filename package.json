@@ -42,7 +42,7 @@
   },
   "author": "Indigo Protocol",
   "license": "MIT",
-  "mcpName": "io.github.indigoprotocol/indigo-mcp",
+  "mcpName": "io.github.IndigoProtocol/indigo-mcp",
   "publishConfig": {
     "access": "public"
   },
