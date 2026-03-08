@@ -41,7 +41,7 @@
     "url": "https://github.com/IndigoProtocol/indigo-mcp"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
