@@ -82,7 +82,15 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error: unknown) => {
-  process.stderr.write(`Indigo MCP error: ${error}\n`);
-  process.exit(1);
-});
+// Handle setup command or start server
+if (process.argv[2] === 'setup') {
+  import('./cli/setup.js').catch((err) => {
+    console.error('Failed to run setup:', err);
+    process.exit(1);
+  });
+} else {
+  main().catch((error: unknown) => {
+    process.stderr.write(`Indigo MCP error: ${error}\n`);
+    process.exit(1);
+  });
+}

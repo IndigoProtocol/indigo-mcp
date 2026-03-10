@@ -29,6 +29,21 @@ MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo 
 
 ## Quick Start
 
+### Automatic Setup (Recommended)
+
+Run the interactive setup to automatically configure your MCP client:
+
+```bash
+npx @indigoprotocol/indigo-mcp setup
+```
+
+This will:
+1. Ask which client you're using (Claude Desktop, Claude Code, Cursor, Windsurf)
+2. Prompt for your Blockfrost API key
+3. Automatically update your config file
+
+### Manual Installation
+
 Install globally:
 
 ```bash

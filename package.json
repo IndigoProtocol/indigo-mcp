@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "indigo-mcp": "dist/index.js"
+    "indigo-mcp": "dist/index.js",
+    "indigo-mcp-setup": "dist/cli/setup.js"
   },
   "files": [
     "dist"
