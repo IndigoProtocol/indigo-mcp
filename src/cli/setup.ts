@@ -7,7 +7,13 @@ import * as readline from 'readline';
 
 const CONFIG_PATHS: Record<string, Record<string, string>> = {
   'Claude Desktop': {
-    darwin: path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'),
+    darwin: path.join(
+      os.homedir(),
+      'Library',
+      'Application Support',
+      'Claude',
+      'claude_desktop_config.json'
+    ),
     win32: path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json'),
     linux: path.join(os.homedir(), '.config', 'Claude', 'claude_desktop_config.json'),
   },
@@ -16,12 +22,12 @@ const CONFIG_PATHS: Record<string, Record<string, string>> = {
     win32: path.join(os.homedir(), '.claude', 'settings.json'),
     linux: path.join(os.homedir(), '.claude', 'settings.json'),
   },
-  'Cursor': {
+  Cursor: {
     darwin: path.join(os.homedir(), '.cursor', 'mcp.json'),
     win32: path.join(os.homedir(), '.cursor', 'mcp.json'),
     linux: path.join(os.homedir(), '.cursor', 'mcp.json'),
   },
-  'Windsurf': {
+  Windsurf: {
     darwin: path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
     win32: path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
     linux: path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json'),
@@ -132,7 +138,10 @@ async function main(): Promise<void> {
 
     // Ask for Blockfrost API key
     console.log('\n💡 Get a free Blockfrost API key at: https://blockfrost.io/');
-    const blockfrostKey = await question(rl, 'Enter your Blockfrost API key (or press Enter to skip): ');
+    const blockfrostKey = await question(
+      rl,
+      'Enter your Blockfrost API key (or press Enter to skip): '
+    );
 
     // Read existing config
     const config = readConfig(configPath);
@@ -165,14 +174,13 @@ async function main(): Promise<void> {
 
     console.log(`\n✅ Added indigo server to ${selectedClient} config`);
     console.log(`   ${configPath}`);
-    
+
     if (!blockfrostKey) {
       console.log('\n⚠️  Remember to add your Blockfrost API key to the config file.');
       console.log('   Read-only tools work without it, but write operations require it.');
     }
 
     console.log(`\n🔄 Restart ${selectedClient} to activate the changes.\n`);
-
   } finally {
     rl.close();
   }
