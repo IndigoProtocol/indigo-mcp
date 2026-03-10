@@ -68,6 +68,14 @@ This starts an HTTP server with:
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
+```bash
+# macOS
+nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
+
+# Windows (PowerShell)
+notepad "$env:APPDATA\Claude\claude_desktop_config.json"
+```
+
 ```json
 {
   "mcpServers": {
@@ -86,6 +94,10 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 ### Claude Code (CLI)
 
 Add to `~/.claude/settings.json` or `.claude/settings.json` in your project:
+
+```bash
+nano ~/.claude/settings.json
+```
 
 ```json
 {
