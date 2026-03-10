@@ -14,7 +14,7 @@ import { registerStakingTools } from './staking-tools.js';
 import { registerStakingWriteTools } from './staking-write-tools.js';
 import { registerCdpLiquidationTools } from './cdp-liquidation-tools.js';
 import { registerLeverageCdpTools } from './leverage-cdp-tools.js';
-import { registerLrpWriteTools } from './lrp-write-tools.js';
+import { registerRobWriteTools } from './rob-write-tools.js';
 import { registerOracleWriteTools } from './oracle-write-tools.js';
 import { registerSpRequestTools } from './sp-request-tools.js';
 import { registerStakingRewardTools } from './staking-reward-tools.js';
@@ -30,7 +30,7 @@ export function registerTools(server: McpServer): void {
   registerDexTools(server);
   registerGovernanceTools(server);
   registerLeverageCdpTools(server);
-  registerLrpWriteTools(server);
+  registerRobWriteTools(server);
   registerOracleWriteTools(server);
   registerRedemptionTools(server);
   registerSpRequestTools(server);

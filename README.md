@@ -54,8 +54,8 @@ That's it — 60 tools configured for Claude Desktop, Claude Code, Cursor, or Wi
 - Redemption order book and queue aggregation
 - DEX proxy: Steelswap swaps, Iris liquidity pools, Blockfrost balances
 - CDP liquidation, redemption, freeze, and merge operations
-- Leveraged CDP opening via LRP positions
-- LRP (Limit Redemption Protocol) position management
+- Leveraged CDP opening via ROB positions
+- ROB (Redemption Order Book) position management
 - Oracle interest rate feeding and initialization
 - Stability pool request processing and cancellation
 - Staking reward distribution
@@ -270,7 +270,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `leverage_cdp` | Open a leveraged CDP by redeeming against LRP positions | `address`: bech32 address; `asset`: iAsset; `leverage`: multiplier (e.g. 2.0); `baseCollateral`: lovelace amount |
+| `leverage_cdp` | Open a leveraged CDP by redeeming against ROB positions | `address`: bech32 address; `asset`: iAsset; `leverage`: multiplier (e.g. 2.0); `baseCollateral`: lovelace amount |
 
 ### Stability Pool Tools
 
@@ -337,15 +337,15 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `get_redemption_orders` | Get redemption orders with optional filters | `timestamp?`: Unix ms; `in_range?`: filter by price range |
 | `get_redemption_queue` | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
 
-### LRP Write Tools
+### ROB Write Tools
 
 | Tool | Description | Parameters |
 |------|-------------|------------|
-| `open_lrp` | Open a new LRP position with ADA and a max price limit | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string |
-| `cancel_lrp` | Cancel an existing LRP position | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index |
-| `adjust_lrp` | Adjust ADA in an LRP (positive to add, negative to remove) | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price |
-| `claim_lrp` | Claim received iAssets from an LRP position | `address`: bech32 address; `lrpTxHash`: LRP UTxO tx hash; `lrpOutputIndex`: output index |
-| `redeem_lrp` | Redeem iAssets against one or more LRP positions | `address`: bech32 address; `redemptionLrps`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
+| `open_rob` | Open a new ROB position with ADA and a max price limit | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string |
+| `cancel_rob` | Cancel an existing ROB position | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index |
+| `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price |
+| `claim_rob` | Claim received iAssets from an ROB position | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index |
+| `redeem_rob` | Redeem iAssets against one or more ROB positions | `address`: bech32 address; `redemptionRobs`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
 
 ### Oracle Write Tools
 
@@ -450,7 +450,7 @@ src/
 │   ├── staking-reward-tools.ts    # 1 staking reward distribution tool
 │   ├── cdp-liquidation-tools.ts   # 4 CDP liquidation/redemption/freeze/merge tools
 │   ├── leverage-cdp-tools.ts      # 1 leveraged CDP tool
-│   ├── lrp-write-tools.ts         # 5 LRP write tools
+│   ├── rob-write-tools.ts         # 5 ROB write tools
 │   ├── oracle-write-tools.ts      # 2 oracle write tools
 │   ├── sp-request-tools.ts        # 2 SP request processing tools
 │   ├── analytics-tools.ts         # 5 analytics/APR tools

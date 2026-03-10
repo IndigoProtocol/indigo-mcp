@@ -97,7 +97,7 @@ async function findInterestOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEv
 }
 
 /**
- * Fetch all LRP UTxOs at the LRP validator address and parse their datums.
+ * Fetch all ROB UTxOs at the ROB validator address and parse their datums.
  */
 async function findAllLrpUtxos(
   params: SystemParams,
@@ -120,7 +120,7 @@ async function findAllLrpUtxos(
 export function registerLeverageCdpTools(server: McpServer): void {
   server.tool(
     'leverage_cdp',
-    'Open a leveraged CDP by redeeming against LRP positions — builds an unsigned transaction (CBOR hex) for client-side signing',
+    'Open a leveraged CDP by redeeming against ROB positions — builds an unsigned transaction (CBOR hex) for client-side signing',
     {
       address: z.string().describe('User Cardano bech32 address (addr1... or addr_test1...)'),
       asset: AssetParam,
@@ -143,7 +143,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
             ]);
 
             if (allLrps.length === 0) {
-              throw new Error('No LRP positions found on-chain');
+              throw new Error('No ROB positions found on-chain');
             }
 
             const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([

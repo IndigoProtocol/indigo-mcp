@@ -14,14 +14,14 @@ function parseMaxPrice(maxPriceStr: string): { getOnChainInt: bigint } {
   return { getOnChainInt: BigInt(maxPriceStr) };
 }
 
-export function registerLrpWriteTools(server: McpServer): void {
+export function registerRobWriteTools(server: McpServer): void {
   server.tool(
-    'open_lrp',
-    'Open a new LRP (Limit Redemption Protocol) position with ADA and a max price limit. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'open_rob',
+    'Open a new ROB (Redemption Order Book) position with ADA and a max price limit. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam,
-      lovelacesAmount: z.string().describe('ADA amount in lovelace to deposit into the LRP'),
+      lovelacesAmount: z.string().describe('ADA amount in lovelace to deposit into the ROB'),
       maxPrice: z
         .string()
         .describe('Max price as an on-chain integer string (the getOnChainInt value)'),
@@ -44,8 +44,8 @@ export function registerLrpWriteTools(server: McpServer): void {
             return txBuilder.complete();
           },
           {
-            type: 'open_lrp',
-            description: `Open ${asset} LRP with ${lovelacesAmount} lovelace`,
+            type: 'open_rob',
+            description: `Open ${asset} ROB with ${lovelacesAmount} lovelace`,
             inputs: { address, asset, lovelacesAmount, maxPrice },
           }
         );
@@ -57,7 +57,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           content: [
             {
               type: 'text' as const,
-              text: `Error opening LRP position: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error opening ROB position: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,
@@ -67,27 +67,27 @@ export function registerLrpWriteTools(server: McpServer): void {
   );
 
   server.tool(
-    'cancel_lrp',
-    'Cancel an existing LRP position. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'cancel_rob',
+    'Cancel an existing ROB position. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
-      lrpTxHash: z.string().describe('Transaction hash of the LRP UTxO'),
-      lrpOutputIndex: z.number().describe('Output index of the LRP UTxO'),
+      robTxHash: z.string().describe('Transaction hash of the ROB UTxO'),
+      robOutputIndex: z.number().describe('Output index of the ROB UTxO'),
     },
-    async ({ address, lrpTxHash, lrpOutputIndex }) => {
+    async ({ address, robTxHash, robOutputIndex }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const lrpOutRef = { txHash: lrpTxHash, outputIndex: lrpOutputIndex };
-            const txBuilder = await cancelLrp(lrpOutRef, params, lucid);
+            const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
+            const txBuilder = await cancelLrp(robOutRef, params, lucid);
             return txBuilder.complete();
           },
           {
-            type: 'cancel_lrp',
-            description: 'Cancel an LRP position',
-            inputs: { address, lrpTxHash, lrpOutputIndex: String(lrpOutputIndex) },
+            type: 'cancel_rob',
+            description: 'Cancel an ROB position',
+            inputs: { address, robTxHash, robOutputIndex: String(robOutputIndex) },
           }
         );
         return {
@@ -98,7 +98,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           content: [
             {
               type: 'text' as const,
-              text: `Error cancelling LRP position: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error cancelling ROB position: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,
@@ -108,12 +108,12 @@ export function registerLrpWriteTools(server: McpServer): void {
   );
 
   server.tool(
-    'adjust_lrp',
-    'Adjust ADA amount in an LRP position (positive to increase, negative to decrease). Optionally update the max price. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'adjust_rob',
+    'Adjust ADA amount in an ROB position (positive to increase, negative to decrease). Optionally update the max price. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
-      lrpTxHash: z.string().describe('Transaction hash of the LRP UTxO'),
-      lrpOutputIndex: z.number().describe('Output index of the LRP UTxO'),
+      robTxHash: z.string().describe('Transaction hash of the ROB UTxO'),
+      robOutputIndex: z.number().describe('Output index of the ROB UTxO'),
       lovelacesAdjustAmount: z
         .string()
         .describe('Lovelace adjustment amount (positive to add, negative to remove)'),
@@ -122,18 +122,18 @@ export function registerLrpWriteTools(server: McpServer): void {
         .optional()
         .describe('Optional new max price as an on-chain integer string'),
     },
-    async ({ address, lrpTxHash, lrpOutputIndex, lovelacesAdjustAmount, newMaxPrice }) => {
+    async ({ address, robTxHash, robOutputIndex, lovelacesAdjustAmount, newMaxPrice }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const lrpOutRef = { txHash: lrpTxHash, outputIndex: lrpOutputIndex };
+            const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
             const newMaxPriceDecimal =
               newMaxPrice !== undefined ? parseMaxPrice(newMaxPrice) : undefined;
             const txBuilder = await adjustLrp(
               lucid,
-              lrpOutRef,
+              robOutRef,
               BigInt(lovelacesAdjustAmount),
               newMaxPriceDecimal,
               params
@@ -141,12 +141,12 @@ export function registerLrpWriteTools(server: McpServer): void {
             return txBuilder.complete();
           },
           {
-            type: 'adjust_lrp',
-            description: `Adjust LRP by ${lovelacesAdjustAmount} lovelace`,
+            type: 'adjust_rob',
+            description: `Adjust ROB by ${lovelacesAdjustAmount} lovelace`,
             inputs: {
               address,
-              lrpTxHash,
-              lrpOutputIndex: String(lrpOutputIndex),
+              robTxHash,
+              robOutputIndex: String(robOutputIndex),
               lovelacesAdjustAmount,
               ...(newMaxPrice !== undefined ? { newMaxPrice } : {}),
             },
@@ -160,7 +160,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           content: [
             {
               type: 'text' as const,
-              text: `Error adjusting LRP position: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error adjusting ROB position: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,
@@ -170,27 +170,27 @@ export function registerLrpWriteTools(server: McpServer): void {
   );
 
   server.tool(
-    'claim_lrp',
-    'Claim received iAssets from an LRP position. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'claim_rob',
+    'Claim received iAssets from an ROB position. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
-      lrpTxHash: z.string().describe('Transaction hash of the LRP UTxO'),
-      lrpOutputIndex: z.number().describe('Output index of the LRP UTxO'),
+      robTxHash: z.string().describe('Transaction hash of the ROB UTxO'),
+      robOutputIndex: z.number().describe('Output index of the ROB UTxO'),
     },
-    async ({ address, lrpTxHash, lrpOutputIndex }) => {
+    async ({ address, robTxHash, robOutputIndex }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const lrpOutRef = { txHash: lrpTxHash, outputIndex: lrpOutputIndex };
-            const txBuilder = await claimLrp(lucid, lrpOutRef, params);
+            const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
+            const txBuilder = await claimLrp(lucid, robOutRef, params);
             return txBuilder.complete();
           },
           {
-            type: 'claim_lrp',
-            description: 'Claim iAssets from an LRP position',
-            inputs: { address, lrpTxHash, lrpOutputIndex: String(lrpOutputIndex) },
+            type: 'claim_rob',
+            description: 'Claim iAssets from an ROB position',
+            inputs: { address, robTxHash, robOutputIndex: String(robOutputIndex) },
           }
         );
         return {
@@ -201,7 +201,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           content: [
             {
               type: 'text' as const,
-              text: `Error claiming LRP iAssets: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error claiming ROB iAssets: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,
@@ -211,19 +211,19 @@ export function registerLrpWriteTools(server: McpServer): void {
   );
 
   server.tool(
-    'redeem_lrp',
-    'Redeem iAssets against one or more LRP positions. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'redeem_rob',
+    'Redeem iAssets against one or more ROB positions. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
-      redemptionLrps: z
+      redemptionRobs: z
         .array(
           z.object({
-            txHash: z.string().describe('Transaction hash of the LRP UTxO'),
-            outputIndex: z.number().describe('Output index of the LRP UTxO'),
-            iAssetAmount: z.string().describe('Amount of iAssets to redeem against this LRP'),
+            txHash: z.string().describe('Transaction hash of the ROB UTxO'),
+            outputIndex: z.number().describe('Output index of the ROB UTxO'),
+            iAssetAmount: z.string().describe('Amount of iAssets to redeem against this ROB'),
           })
         )
-        .describe('Array of LRP positions and amounts to redeem against'),
+        .describe('Array of ROB positions and amounts to redeem against'),
       priceOracleTxHash: z.string().describe('Transaction hash of the price oracle UTxO'),
       priceOracleOutputIndex: z.number().describe('Output index of the price oracle UTxO'),
       iassetTxHash: z.string().describe('Transaction hash of the iAsset UTxO'),
@@ -231,7 +231,7 @@ export function registerLrpWriteTools(server: McpServer): void {
     },
     async ({
       address,
-      redemptionLrps,
+      redemptionRobs,
       priceOracleTxHash,
       priceOracleOutputIndex,
       iassetTxHash,
@@ -242,10 +242,10 @@ export function registerLrpWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const redemptionLrpsData: [{ txHash: string; outputIndex: number }, bigint][] =
-              redemptionLrps.map((lrp) => [
-                { txHash: lrp.txHash, outputIndex: lrp.outputIndex },
-                BigInt(lrp.iAssetAmount),
+            const redemptionRobsData: [{ txHash: string; outputIndex: number }, bigint][] =
+              redemptionRobs.map((rob) => [
+                { txHash: rob.txHash, outputIndex: rob.outputIndex },
+                BigInt(rob.iAssetAmount),
               ]);
             const priceOracleOutRef = {
               txHash: priceOracleTxHash,
@@ -256,7 +256,7 @@ export function registerLrpWriteTools(server: McpServer): void {
               outputIndex: iassetOutputIndex,
             };
             const txBuilder = await redeemLrp(
-              redemptionLrpsData,
+              redemptionRobsData,
               priceOracleOutRef,
               iassetOutRef,
               lucid,
@@ -265,11 +265,11 @@ export function registerLrpWriteTools(server: McpServer): void {
             return txBuilder.complete();
           },
           {
-            type: 'redeem_lrp',
-            description: `Redeem iAssets against ${redemptionLrps.length} LRP position(s)`,
+            type: 'redeem_rob',
+            description: `Redeem iAssets against ${redemptionRobs.length} ROB position(s)`,
             inputs: {
               address,
-              redemptionLrps: JSON.stringify(redemptionLrps),
+              redemptionRobs: JSON.stringify(redemptionRobs),
               priceOracleTxHash,
               priceOracleOutputIndex: String(priceOracleOutputIndex),
               iassetTxHash,
@@ -285,7 +285,7 @@ export function registerLrpWriteTools(server: McpServer): void {
           content: [
             {
               type: 'text' as const,
-              text: `Error redeeming LRP: ${error instanceof Error ? error.message : String(error)}`,
+              text: `Error redeeming ROB: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
           isError: true,
