@@ -201,6 +201,42 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 }
 ```
 
+### OpenClaw
+
+Install Indigo skills for [OpenClaw](https://openclaw.ai):
+
+```bash
+openclaw skills add IndigoProtocol/indigo-skills
+```
+
+Skills are automatically configured — start using Indigo tools immediately.
+
+### Combined with Cardano MCP
+
+For full Cardano DeFi capabilities, use both Indigo MCP and [Cardano MCP](https://github.com/IndigoProtocol/cardano-mcp) together:
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
+      }
+    },
+    "cardano": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/cardano-mcp"],
+      "env": {
+        "SEED_PHRASE": "word1,word2,word3,...",
+        "BLOCKFROST_PROJECT_ID": "your-blockfrost-project-id"
+      }
+    }
+  }
+}
+```
+
 ### Any MCP-Compatible Client
 
 Run the server directly via stdio:
