@@ -6,6 +6,18 @@
 
 MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo iAsset data, prices, and CDP/loan analytics to LLM agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
+## ⚡ 2 Commands to Get Started
+
+```bash
+# Install
+npm install -g @indigoprotocol/indigo-mcp
+
+# Setup (interactive)
+npx @indigoprotocol/indigo-mcp setup
+```
+
+That's it — 60 tools configured for Claude Desktop, Claude Code, Cursor, or Windsurf.
+
 ## Features
 
 - Real-time iAsset prices (iUSD, iBTC, iETH, iSOL)
