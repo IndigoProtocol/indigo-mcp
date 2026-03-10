@@ -30,6 +30,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:x402": "vitest run src/x402/__tests__",
+    "test:e2e": "TEST_E2E=true vitest run src/x402/__tests__/e2e.test.ts",
     "smithery:build": "bash scripts/smithery-build.sh",
     "smithery:publish": "bash scripts/smithery-build.sh && npx smithery mcp publish --name indigoprotocol/indigo-mcp --from-build .smithery/stdio"
   },
