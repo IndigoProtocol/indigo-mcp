@@ -6,14 +6,28 @@
 
 MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo iAsset data, prices, and CDP/loan analytics to LLM agents via the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-## ⚡ 2 Commands to Get Started
+## ⚡ Quick Start — Full Cardano DeFi Stack
+
+### MCP Servers (63 tools)
 
 ```bash
-# Install
+# 1. Install & Setup Indigo MCP (57 tools)
 npm install -g @indigoprotocol/indigo-mcp
-
-# Setup (interactive)
 npx @indigoprotocol/indigo-mcp setup
+
+# 2. Install & Setup Cardano MCP (6 wallet tools)
+npm install -g @indigoprotocol/cardano-mcp
+npx @indigoprotocol/cardano-mcp setup
+```
+
+### AI Skills (13 skills) — Optional
+
+```bash
+# 3. Install Indigo Skills
+npx @indigoprotocol/indigo-skills
+
+# 4. Install Cardano Skills
+npx @indigoprotocol/cardano-skills
 ```
 
 ```
@@ -33,12 +47,12 @@ npx @indigoprotocol/indigo-mcp setup
 ║   ██║ ╚═╝ ██║╚██████╗██║                                      ║
 ║   ╚═╝     ╚═╝ ╚═════╝╚═╝                                      ║
 ║                                                               ║
-║   57 tools for Cardano DeFi                                   ║
+║   63 tools • 13 skills for Cardano DeFi                       ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-That's it — 57 tools configured for Claude Desktop, Claude Code, Cursor, or Windsurf.
+The setup commands auto-configure Claude Desktop, Claude Code, Cursor, or Windsurf. No manual config editing needed.
 
 ## Features
 
