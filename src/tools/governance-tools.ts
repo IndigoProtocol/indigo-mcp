@@ -44,28 +44,7 @@ export function registerGovernanceTools(server: McpServer): void {
     }
   });
 
-  // 3. get_sync_status - No params → GET /sync/
-  server.tool('get_sync_status', 'Get indexer sync status', {}, async () => {
-    try {
-      const client = getIndexerClient();
-      const response = await client.get('/sync/');
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `Error fetching sync status: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  });
-
-  // 4. get_polls - No params → GET /polls/
+  // 3. get_polls - No params → GET /polls/
   server.tool('get_polls', 'Get all governance polls', {}, async () => {
     try {
       const client = getIndexerClient();

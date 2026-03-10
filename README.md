@@ -33,12 +33,12 @@ npx @indigoprotocol/indigo-mcp setup
 ║   ██║ ╚═╝ ██║╚██████╗██║                                      ║
 ║   ╚═╝     ╚═╝ ╚═════╝╚═╝                                      ║
 ║                                                               ║
-║   60 tools for Cardano DeFi                                   ║
+║   57 tools for Cardano DeFi                                   ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
 
-That's it — 60 tools configured for Claude Desktop, Claude Code, Cursor, or Windsurf.
+That's it — 57 tools configured for Claude Desktop, Claude Code, Cursor, or Windsurf.
 
 ## Features
 
@@ -326,7 +326,6 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 |------|-------------|------------|
 | `get_protocol_params` | Get latest governance protocol parameters | None |
 | `get_temperature_checks` | Get temperature check polls | None |
-| `get_sync_status` | Get indexer sync status | None |
 | `get_polls` | Get all governance polls | None |
 
 ### Redemption & Order Book Tools
@@ -346,13 +345,6 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price |
 | `claim_rob` | Claim received iAssets from an ROB position | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index |
 | `redeem_rob` | Redeem iAssets against one or more ROB positions | `address`: bech32 address; `redemptionRobs`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
-
-### Oracle Write Tools
-
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `feed_interest_oracle` | Feed a new interest rate to the interest oracle (oracle operator only) | `address`: operator bech32 address; `asset`: iAsset; `newInterestRate`: bigint string; `biasTime`: ms bigint string; `owner`: operator pub key hash |
-| `start_interest_oracle` | Initialize a new interest oracle (admin one-time setup) | `address`: admin bech32 address; `initialUnitaryInterest`; `initialInterestRate`; `initialLastInterestUpdate`; `biasTime`; `owner`: operator pub key hash |
 
 ### DEX Proxy Tools
 
@@ -451,10 +443,10 @@ src/
 │   ├── cdp-liquidation-tools.ts   # 4 CDP liquidation/redemption/freeze/merge tools
 │   ├── leverage-cdp-tools.ts      # 1 leveraged CDP tool
 │   ├── rob-write-tools.ts         # 5 ROB write tools
-│   ├── oracle-write-tools.ts      # 2 oracle write tools
+
 │   ├── sp-request-tools.ts        # 2 SP request processing tools
 │   ├── analytics-tools.ts         # 5 analytics/APR tools
-│   ├── governance-tools.ts        # 4 governance tools
+│   ├── governance-tools.ts        # 3 governance tools
 │   ├── redemption-tools.ts        # 3 redemption/order book tools
 │   ├── dex-tools.ts               # 4 DEX proxy tools
 │   └── collector-tools.ts         # 3 collector/IPFS tools
