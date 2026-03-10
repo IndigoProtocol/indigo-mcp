@@ -88,8 +88,30 @@ function writeConfig(configPath: string, config: Record<string, unknown>): void 
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
 }
 
+const BANNER = `
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║   ██╗███╗   ██╗██████╗ ██╗ ██████╗  ██████╗                   ║
+║   ██║████╗  ██║██╔══██╗██║██╔════╝ ██╔═══██╗                  ║
+║   ██║██╔██╗ ██║██║  ██║██║██║  ███╗██║   ██║                  ║
+║   ██║██║╚██╗██║██║  ██║██║██║   ██║██║   ██║                  ║
+║   ██║██║ ╚████║██████╔╝██║╚██████╔╝╚██████╔╝                  ║
+║   ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝ ╚═════╝  ╚═════╝                   ║
+║                                                               ║
+║   ███╗   ███╗ ██████╗██████╗                                  ║
+║   ████╗ ████║██╔════╝██╔══██╗                                 ║
+║   ██╔████╔██║██║     ██████╔╝                                 ║
+║   ██║╚██╔╝██║██║     ██╔═══╝                                  ║
+║   ██║ ╚═╝ ██║╚██████╗██║                                      ║
+║   ╚═╝     ╚═╝ ╚═════╝╚═╝                                      ║
+║                                                               ║
+║   60 tools for Cardano DeFi                                   ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+`;
+
 async function main(): Promise<void> {
-  console.log('\n🔷 Indigo MCP Setup\n');
+  console.log(BANNER);
 
   const rl = createReadlineInterface();
   const platform = process.platform as 'darwin' | 'win32' | 'linux';
