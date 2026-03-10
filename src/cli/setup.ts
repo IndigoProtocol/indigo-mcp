@@ -120,15 +120,23 @@ async function main(): Promise<void> {
       config.mcpServers = {};
     }
 
+    // Check for existing indigo config
+    const existingServers = config.mcpServers as Record<string, any>;
+    const existingIndigo = existingServers['indigo'];
+    const existingKey = existingIndigo?.env?.BLOCKFROST_API_KEY;
+
     // Add indigo server
     const serverConfig = { ...INDIGO_SERVER_CONFIG };
     if (blockfrostKey) {
       serverConfig.env = { ...serverConfig.env, BLOCKFROST_API_KEY: blockfrostKey };
+    } else if (existingKey && existingKey !== 'your-blockfrost-project-id') {
+      // Preserve existing key if user skipped
+      serverConfig.env = { ...serverConfig.env, BLOCKFROST_API_KEY: existingKey };
     } else {
       serverConfig.env = { ...serverConfig.env, BLOCKFROST_API_KEY: 'your-blockfrost-project-id' };
     }
 
-    (config.mcpServers as Record<string, unknown>)['indigo'] = serverConfig;
+    existingServers['indigo'] = serverConfig;
 
     // Write config
     writeConfig(configPath, config);
