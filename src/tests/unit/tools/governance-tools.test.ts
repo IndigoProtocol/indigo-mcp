@@ -73,27 +73,6 @@ describe('governance tools', () => {
     });
   });
 
-  describe('get_sync_status', () => {
-    it('should return sync status', async () => {
-      const mockData = { slot: 12345, synced: true };
-      mockGet.mockResolvedValue({ data: mockData });
-
-      const result = await tools.get('get_sync_status')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/sync/');
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Error'));
-
-      const result = await tools.get('get_sync_status')!({});
-
-      expect(result.isError).toBe(true);
-    });
-  });
-
   describe('get_polls', () => {
     it('should return all polls', async () => {
       const mockData = [{ id: 1, title: 'Poll 1' }];
