@@ -131,7 +131,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetUtxo, lucid),
             ]);
 
-        return mintCdp(
+            return mintCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetUtxo,

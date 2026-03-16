@@ -26,12 +26,7 @@ export function registerStakingRewardTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const stakingManagerOutput = await findStakingManager(params, lucid);
-            return distributeAda(
-              stakingManagerOutput.utxo,
-              collectorTxHashes,
-              params,
-              lucid
-            );
+            return distributeAda(stakingManagerOutput.utxo, collectorTxHashes, params, lucid);
           },
           {
             type: 'distribute_staking_rewards',

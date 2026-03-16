@@ -69,13 +69,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            return adjustSpAccount(
-              asset,
-              BigInt(amount),
-              accountUtxo,
-              params,
-              lucid
-            );
+            return adjustSpAccount(asset, BigInt(amount), accountUtxo, params, lucid);
           },
           {
             type: 'adjust_sp_account',

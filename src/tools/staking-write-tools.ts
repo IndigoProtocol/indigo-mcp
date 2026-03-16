@@ -24,12 +24,7 @@ export function registerStakingWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const stakingManagerOutput = await findStakingManager(params, lucid);
-            return openStakingPosition(
-              BigInt(amount),
-              params,
-              lucid,
-              stakingManagerOutput.utxo
-            );
+            return openStakingPosition(BigInt(amount), params, lucid, stakingManagerOutput.utxo);
           },
           {
             type: 'open_staking_position',

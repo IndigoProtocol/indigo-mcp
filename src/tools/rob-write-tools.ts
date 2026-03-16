@@ -34,13 +34,7 @@ export function registerRobWriteTools(server: McpServer): void {
             const params = await getSystemParams();
             const assetTokenName = fromText(asset);
             const maxPriceDecimal = parseMaxPrice(maxPrice);
-            return openLrp(
-              assetTokenName,
-              BigInt(lovelacesAmount),
-              maxPriceDecimal,
-              lucid,
-              params
-            );
+            return openLrp(assetTokenName, BigInt(lovelacesAmount), maxPriceDecimal, lucid, params);
           },
           {
             type: 'open_rob',
@@ -251,13 +245,7 @@ export function registerRobWriteTools(server: McpServer): void {
               txHash: iassetTxHash,
               outputIndex: iassetOutputIndex,
             };
-            return redeemLrp(
-              redemptionRobsData,
-              priceOracleOutRef,
-              iassetOutRef,
-              lucid,
-              params
-            );
+            return redeemLrp(redemptionRobsData, priceOracleOutRef, iassetOutRef, lucid, params);
           },
           {
             type: 'redeem_rob',

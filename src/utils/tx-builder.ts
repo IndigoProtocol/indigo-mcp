@@ -13,10 +13,7 @@ const CIP20_METADATA_LABEL = 674;
  * Each line is capped at 64 bytes (CIP-20 requirement).
  */
 function buildCip20Message(summary: TxSummary): string[] {
-  const lines: string[] = [
-    `Indigo Protocol: ${summary.type}`,
-    summary.description,
-  ];
+  const lines: string[] = [`Indigo Protocol: ${summary.type}`, summary.description];
   return lines.map((line) => (line.length > 64 ? line.slice(0, 64) : line));
 }
 
