@@ -157,7 +157,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await openCdp(
+            return openCdp(
               BigInt(collateralAmount),
               BigInt(mintAmount),
               params,
@@ -169,7 +169,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'open_cdp',
@@ -226,7 +225,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await depositCdp(
+            return depositCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetResult.utxo,
@@ -239,7 +238,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'deposit_cdp',
@@ -296,7 +294,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await withdrawCdp(
+            return withdrawCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetResult.utxo,
@@ -309,7 +307,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'withdraw_cdp',
@@ -365,7 +362,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await closeCdp(
+            return closeCdp(
               cdpOutRef,
               iAssetResult.utxo,
               priceOracleUtxo,
@@ -377,7 +374,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'close_cdp',

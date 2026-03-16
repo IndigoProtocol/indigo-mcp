@@ -24,13 +24,12 @@ export function registerStakingWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const stakingManagerOutput = await findStakingManager(params, lucid);
-            const txBuilder = await openStakingPosition(
+            return openStakingPosition(
               BigInt(amount),
               params,
               lucid,
               stakingManagerOutput.utxo
             );
-            return txBuilder.complete();
           },
           {
             type: 'open_staking_position',
@@ -78,7 +77,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               outputIndex: positionOutputIndex,
             };
             const currentSlot = lucid.currentSlot();
-            const txBuilder = await adjustStakingPosition(
+            return adjustStakingPosition(
               positionOutRef,
               BigInt(amount),
               params,
@@ -86,7 +85,6 @@ export function registerStakingWriteTools(server: McpServer): void {
               currentSlot,
               stakingManagerOutput.utxo
             );
-            return txBuilder.complete();
           },
           {
             type: 'adjust_staking_position',
@@ -136,14 +134,13 @@ export function registerStakingWriteTools(server: McpServer): void {
               outputIndex: positionOutputIndex,
             };
             const currentSlot = lucid.currentSlot();
-            const txBuilder = await closeStakingPosition(
+            return closeStakingPosition(
               positionOutRef,
               params,
               lucid,
               currentSlot,
               stakingManagerOutput.utxo
             );
-            return txBuilder.complete();
           },
           {
             type: 'close_staking_position',

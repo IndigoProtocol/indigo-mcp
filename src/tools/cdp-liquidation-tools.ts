@@ -119,7 +119,7 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               findTreasuryUtxo(params, lucid),
             ]);
 
-            const txBuilder = await liquidateCdp(
+            return liquidateCdp(
               cdpOutRef,
               stabilityPoolUtxo,
               collectorUtxo,
@@ -127,7 +127,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               params,
               lucid
             );
-            return txBuilder.complete();
           },
           {
             type: 'liquidate_cdp',
@@ -187,7 +186,7 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await redeemCdp(
+            return redeemCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetResult.utxo,
@@ -199,7 +198,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'redeem_cdp',
@@ -250,7 +248,7 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await freezeCdp(
+            return freezeCdp(
               cdpOutRef,
               iAssetResult.utxo,
               priceOracleUtxo,
@@ -259,7 +257,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'freeze_cdp',
@@ -307,8 +304,7 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
 
-            const txBuilder = await mergeCdps(cdpOutRefs, params, lucid);
-            return txBuilder.complete();
+            return mergeCdps(cdpOutRefs, params, lucid);
           },
           {
             type: 'merge_cdps',
