@@ -5,7 +5,7 @@ OUT_DIR="dist"
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR" "$OUT_DIR/cli"
 
-BANNER='import { createRequire as __banner_createRequire } from "module"; import { fileURLToPath as __banner_fileURLToPath } from "url"; import { dirname as __banner_dirname } from "path"; const require = __banner_createRequire(import.meta.url); const __filename = __banner_fileURLToPath(import.meta.url); const __dirname = __banner_dirname(__filename);'
+BANNER='import { createRequire as __banner_createRequire } from "module"; import { fileURLToPath as __banner_fileURLToPath } from "url"; import { dirname as __banner_dirname } from "path"; import { Request as UndiciRequest, Response as UndiciResponse, Headers as UndiciHeaders, fetch as undiciFetch } from "undici"; const require = __banner_createRequire(import.meta.url); const __filename = __banner_fileURLToPath(import.meta.url); const __dirname = __banner_dirname(__filename); if (typeof globalThis.Request === "undefined") { globalThis.Request = UndiciRequest; globalThis.Response = UndiciResponse; globalThis.Headers = UndiciHeaders; globalThis.fetch = undiciFetch; }'
 
 echo "Building main bundle..."
 npx esbuild src/index.ts \
@@ -15,6 +15,7 @@ npx esbuild src/index.ts \
   --outfile="$OUT_DIR/index.js" \
   --target=node18 \
   --main-fields=module,main \
+  --external:undici \
   --banner:js="$BANNER"
 
 echo "Building CLI setup..."

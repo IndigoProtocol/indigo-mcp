@@ -139,6 +139,7 @@ nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
 notepad "$env:APPDATA\Claude\claude_desktop_config.json"
 ```
 
+**Standard config:**
 ```json
 {
   "mcpServers": {
@@ -153,6 +154,28 @@ notepad "$env:APPDATA\Claude\claude_desktop_config.json"
   }
 }
 ```
+
+**For nvm users (multiple Node versions):**
+
+If you use nvm and have multiple Node versions, you may need to specify the full path and set PATH explicitly:
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "/Users/YOUR_USERNAME/.nvm/versions/node/v22.22.0/bin/npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "PATH": "/Users/YOUR_USERNAME/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
+      }
+    }
+  }
+}
+```
+
+> **Note:** Replace `YOUR_USERNAME` and Node version with your actual values. Find your Node path with `which npx`.
 
 ### Claude Code (CLI)
 
