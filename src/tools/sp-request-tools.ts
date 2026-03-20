@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { LucidEvolution } from '@lucid-evolution/lucid';
-import type { SystemParams } from '@indigo-labs/indigo-sdk';
+import type { SystemParams } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
 import { fromText } from '@lucid-evolution/lucid';
 import {
@@ -10,7 +10,7 @@ import {
   assetClassToUnit,
   createScriptAddress,
   matchSingle,
-} from '@indigo-labs/indigo-sdk';
+} from '@indigoprotocol/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';

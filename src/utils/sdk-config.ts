@@ -1,5 +1,5 @@
-import type { SystemParams } from '@indigo-labs/indigo-sdk';
-import { loadSystemParamsFromUrl } from '@indigo-labs/indigo-sdk';
+import type { SystemParams } from '@indigoprotocol/indigo-sdk';
+import { loadSystemParamsFromUrl } from '@indigoprotocol/indigo-sdk';
 
 const SYSTEM_PARAMS_URL =
   'https://config.indigoprotocol.io/mainnet/mainnet-system-params-v21-lrp.json';

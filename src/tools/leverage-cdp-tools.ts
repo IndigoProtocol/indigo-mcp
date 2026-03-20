@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { LucidEvolution, Network, UTxO } from '@lucid-evolution/lucid';
 import { fromText } from '@lucid-evolution/lucid';
-import type { SystemParams, IAssetContent, LRPDatum } from '@indigo-labs/indigo-sdk';
+import type { SystemParams, IAssetContent, LRPDatum } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
 import {
   leverageCdpWithLrp,
@@ -11,7 +11,7 @@ import {
   parseIAssetDatumOrThrow,
   parseLrpDatumOrThrow,
   getInlineDatumOrThrow,
-} from '@indigo-labs/indigo-sdk';
+} from '@indigoprotocol/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';

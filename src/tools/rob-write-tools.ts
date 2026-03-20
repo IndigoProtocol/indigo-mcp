@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { fromText } from '@lucid-evolution/lucid';
-import { openLrp, cancelLrp, adjustLrp, claimLrp, redeemLrp } from '@indigo-labs/indigo-sdk';
+import { openLrp, cancelLrp, adjustLrp, claimLrp, redeemLrp } from '@indigoprotocol/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';

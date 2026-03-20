@@ -5,7 +5,7 @@ import {
   adjustStakingPosition,
   closeStakingPosition,
   findStakingManager,
-} from '@indigo-labs/indigo-sdk';
+} from '@indigoprotocol/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 

@@ -11,3 +11,5 @@ coverage/
 .smithery/stdio/
 .smithery/hosted/
 .wrangler/
+indigo-mcp-darwin-arm64
+indigo-mcp-*

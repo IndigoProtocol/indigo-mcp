@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
-import { createSpAccount, adjustSpAccount, closeSpAccount } from '@indigo-labs/indigo-sdk';
+import { createSpAccount, adjustSpAccount, closeSpAccount } from '@indigoprotocol/indigo-sdk';
 import { AssetParam } from '../utils/validators.js';
 
 export function registerStabilityPoolWriteTools(server: McpServer): void {

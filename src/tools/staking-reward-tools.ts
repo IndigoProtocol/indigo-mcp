@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { distributeAda, findStakingManager } from '@indigo-labs/indigo-sdk';
+import { distributeAda, findStakingManager } from '@indigoprotocol/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 
