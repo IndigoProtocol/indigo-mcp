@@ -1,6 +1,6 @@
 {
   "name": "@indigoprotocol/indigo-mcp",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "type": "module",
   "description": "MCP server for Indigo Protocol",
   "main": "dist/index.js",
@@ -49,15 +49,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
+  "devDependencies": {
     "@indigoprotocol/indigo-sdk": "^1.0.6",
     "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "axios": "^1.12.2",
     "bech32": "^2.0.0",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
+    "zod": "^3.25.76",
     "@types/node": "^24.3.1",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
