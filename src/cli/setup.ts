@@ -34,14 +34,51 @@ const CONFIG_PATHS: Record<string, Record<string, string>> = {
   },
 };
 
-const INDIGO_SERVER_CONFIG = {
-  command: 'npx',
-  args: ['-y', '@indigoprotocol/indigo-mcp'],
-  env: {
-    INDEXER_URL: 'https://analytics.indigoprotocol.io/api/v1',
-    BLOCKFROST_API_KEY: '',
-  },
-};
+interface ServerConfig {
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+}
+
+function detectNvmPath(): { isNvm: boolean; nodePath: string | null; npxPath: string | null } {
+  const nodePath = process.execPath;
+  const isNvm = nodePath.includes('.nvm/versions/node');
+  
+  if (isNvm) {
+    const nodeDir = path.dirname(nodePath);
+    const npxPath = path.join(nodeDir, 'npx');
+    return { isNvm: true, nodePath: nodeDir, npxPath };
+  }
+  
+  return { isNvm: false, nodePath: null, npxPath: null };
+}
+
+function getIndigoServerConfig(): ServerConfig {
+  const { isNvm, nodePath, npxPath } = detectNvmPath();
+  
+  if (isNvm && npxPath && nodePath) {
+    // nvm detected - use full paths
+    return {
+      command: npxPath,
+      args: ['-y', '@indigoprotocol/indigo-mcp'],
+      env: {
+        PATH: `${nodePath}:/usr/local/bin:/usr/bin:/bin`,
+        INDEXER_URL: 'https://analytics.indigoprotocol.io/api/v1',
+        BLOCKFROST_API_KEY: '',
+      },
+    };
+  }
+  
+  // Standard config
+  return {
+    command: 'npx',
+    args: ['-y', '@indigoprotocol/indigo-mcp'],
+    env: {
+      INDEXER_URL: 'https://analytics.indigoprotocol.io/api/v1',
+      BLOCKFROST_API_KEY: '',
+    },
+  };
+}
 
 function createReadlineInterface(): readline.Interface {
   return readline.createInterface({
@@ -156,8 +193,15 @@ async function main(): Promise<void> {
     const existingIndigo = existingServers['indigo'];
     const existingKey = existingIndigo?.env?.BLOCKFROST_API_KEY;
 
+    // Detect nvm and get appropriate config
+    const { isNvm, nodePath } = detectNvmPath();
+    if (isNvm) {
+      console.log(`\n🔧 Detected nvm (Node path: ${nodePath})`);
+      console.log('   Using full paths in config for compatibility.');
+    }
+
     // Add indigo server
-    const serverConfig = { ...INDIGO_SERVER_CONFIG };
+    const serverConfig = getIndigoServerConfig();
     if (blockfrostKey) {
       serverConfig.env = { ...serverConfig.env, BLOCKFROST_API_KEY: blockfrostKey };
     } else if (existingKey && existingKey !== 'your-blockfrost-project-id') {

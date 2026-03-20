@@ -16,6 +16,8 @@ npx esbuild src/index.ts \
   --target=node18 \
   --main-fields=module,main \
   --external:undici \
+  --external:libsodium-wrappers-sumo \
+  --external:libsodium-sumo \
   --banner:js="$BANNER"
 
 echo "Building CLI setup..."
