@@ -20,8 +20,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const txBuilder = await createSpAccount(asset, BigInt(amount), params, lucid);
-            return txBuilder.complete();
+            return createSpAccount(asset, BigInt(amount), params, lucid);
           },
           {
             type: 'create_sp_account',
@@ -70,14 +69,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            const txBuilder = await adjustSpAccount(
-              asset,
-              BigInt(amount),
-              accountUtxo,
-              params,
-              lucid
-            );
-            return txBuilder.complete();
+            return adjustSpAccount(asset, BigInt(amount), accountUtxo, params, lucid);
           },
           {
             type: 'adjust_sp_account',
@@ -128,8 +120,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            const txBuilder = await closeSpAccount(accountUtxo, params, lucid);
-            return txBuilder.complete();
+            return closeSpAccount(accountUtxo, params, lucid);
           },
           {
             type: 'close_sp_account',

@@ -151,7 +151,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetResult.datum, lucid),
             ]);
 
-            const txBuilder = await leverageCdpWithLrp(
+            return leverageCdpWithLrp(
               leverage,
               BigInt(baseCollateral),
               priceOracleUtxo,
@@ -164,7 +164,6 @@ export function registerLeverageCdpTools(server: McpServer): void {
               allLrps,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'leverage_cdp',

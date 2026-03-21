@@ -106,7 +106,7 @@ export function registerSpRequestTools(server: McpServer): void {
               findCollectorUtxo(params, lucid),
             ]);
 
-            const txBuilder = await processSpRequest(
+            return processSpRequest(
               asset,
               stabilityPoolUtxo,
               accountUtxo,
@@ -117,7 +117,6 @@ export function registerSpRequestTools(server: McpServer): void {
               lucid,
               collectorUtxo
             );
-            return txBuilder.complete();
           },
           {
             type: 'process_sp_request',
@@ -169,8 +168,7 @@ export function registerSpRequestTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            const txBuilder = await annulRequest(accountUtxo, params, lucid);
-            return txBuilder.complete();
+            return annulRequest(accountUtxo, params, lucid);
           },
           {
             type: 'annul_sp_request',

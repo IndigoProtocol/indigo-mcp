@@ -131,7 +131,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetUtxo, lucid),
             ]);
 
-            const txBuilder = await mintCdp(
+            return mintCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetUtxo,
@@ -144,7 +144,6 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'mint_cdp',
@@ -201,7 +200,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               findInterestOracleUtxo(iAssetUtxo, lucid),
             ]);
 
-            const txBuilder = await burnCdp(
+            return burnCdp(
               BigInt(amount),
               cdpOutRef,
               iAssetUtxo,
@@ -214,7 +213,6 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               lucid,
               currentSlot
             );
-            return txBuilder.complete();
           },
           {
             type: 'burn_cdp',

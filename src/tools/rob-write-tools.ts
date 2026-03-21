@@ -34,14 +34,7 @@ export function registerRobWriteTools(server: McpServer): void {
             const params = await getSystemParams();
             const assetTokenName = fromText(asset);
             const maxPriceDecimal = parseMaxPrice(maxPrice);
-            const txBuilder = await openLrp(
-              assetTokenName,
-              BigInt(lovelacesAmount),
-              maxPriceDecimal,
-              lucid,
-              params
-            );
-            return txBuilder.complete();
+            return openLrp(assetTokenName, BigInt(lovelacesAmount), maxPriceDecimal, lucid, params);
           },
           {
             type: 'open_rob',
@@ -81,8 +74,7 @@ export function registerRobWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
-            const txBuilder = await cancelLrp(robOutRef, params, lucid);
-            return txBuilder.complete();
+            return cancelLrp(robOutRef, params, lucid);
           },
           {
             type: 'cancel_rob',
@@ -131,14 +123,13 @@ export function registerRobWriteTools(server: McpServer): void {
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
             const newMaxPriceDecimal =
               newMaxPrice !== undefined ? parseMaxPrice(newMaxPrice) : undefined;
-            const txBuilder = await adjustLrp(
+            return adjustLrp(
               lucid,
               robOutRef,
               BigInt(lovelacesAdjustAmount),
               newMaxPriceDecimal,
               params
             );
-            return txBuilder.complete();
           },
           {
             type: 'adjust_rob',
@@ -184,8 +175,7 @@ export function registerRobWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
-            const txBuilder = await claimLrp(lucid, robOutRef, params);
-            return txBuilder.complete();
+            return claimLrp(lucid, robOutRef, params);
           },
           {
             type: 'claim_rob',
@@ -255,14 +245,7 @@ export function registerRobWriteTools(server: McpServer): void {
               txHash: iassetTxHash,
               outputIndex: iassetOutputIndex,
             };
-            const txBuilder = await redeemLrp(
-              redemptionRobsData,
-              priceOracleOutRef,
-              iassetOutRef,
-              lucid,
-              params
-            );
-            return txBuilder.complete();
+            return redeemLrp(redemptionRobsData, priceOracleOutRef, iassetOutRef, lucid, params);
           },
           {
             type: 'redeem_rob',
