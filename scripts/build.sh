@@ -18,6 +18,8 @@ npx esbuild src/index.ts \
   --external:undici \
   --external:libsodium-wrappers-sumo \
   --external:libsodium-sumo \
+  --external:@modelcontextprotocol/sdk \
+  --external:zod \
   --banner:js="$BANNER"
 
 echo "Building CLI setup..."
