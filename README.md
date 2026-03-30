@@ -75,6 +75,10 @@ The setup commands auto-configure Claude Desktop, Claude Code, Cursor, or Windsu
 - Staking reward distribution
 - Collector UTXOs, IPFS storage and retrieval
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/indigoprotocol-indigo-mcp).
+
 ## Quick Start
 
 ### Automatic Setup (Recommended)
