@@ -1,0 +1,43 @@
+name: Slack Commit Notify
+
+on:
+  push:
+    branches: ['*']
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_DAILY_WEBHOOK }}
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          COMMIT_TITLE=$(echo '${{ github.event.head_commit.message }}' | head -1)
+          COMMIT_BODY=$(echo '${{ github.event.head_commit.message }}' | tail -n +3 | head -5)
+          COMMIT_HASH="${GITHUB_SHA:0:7}"
+          COMMIT_URL="${{ github.event.head_commit.url }}"
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          AUTHOR="${{ github.event.head_commit.author.name }}"
+          
+          EMOJI="💻"
+          if echo "$COMMIT_TITLE" | grep -qiE "^feat"; then EMOJI="✨"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "^fix"; then EMOJI="🐛"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "^docs"; then EMOJI="📝"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "^refactor"; then EMOJI="♻️"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "^test"; then EMOJI="🧪"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "^chore"; then EMOJI="🔧"; fi
+          if echo "$COMMIT_TITLE" | grep -qiE "release|v[0-9]"; then EMOJI="🚀"; fi
+          
+          CLEAN_TITLE=$(echo "$COMMIT_TITLE" | sed 's/^[a-z]*([^)]*): //' | sed 's/^[a-z]*: //')
+          CLEAN_TITLE=$(echo "$CLEAN_TITLE" | sed 's/"/\\"/g' | head -c 100)
+          CLEAN_BODY=$(echo "$COMMIT_BODY" | sed 's/"/\\"/g' | tr '\n' ' ' | head -c 200)
+          
+          DESC_BLOCK=""
+          if [ -n "$CLEAN_BODY" ] && [ "$CLEAN_BODY" != " " ]; then
+            DESC_BLOCK=",{\"type\":\"context\",\"elements\":[{\"type\":\"mrkdwn\",\"text\":\"${CLEAN_BODY}\"}]}"
+          fi
+          
+          curl -s -X POST -H 'Content-type: application/json' \
+            --data "{\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"${EMOJI} *<${COMMIT_URL}|${CLEAN_TITLE}>*\n📦 \\\`${REPO_NAME}\\\` on \\\`${BRANCH}\\\` • ${COMMIT_HASH} • by ${AUTHOR}\"}}${DESC_BLOCK}]}" \
+            "$SLACK_WEBHOOK"
