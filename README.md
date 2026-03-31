@@ -554,6 +554,88 @@ npm run build
 echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"0.1.0"}}}' | node dist/index.js
 ```
 
+## x402 Payment Gating
+
+Indigo MCP optionally gates tools behind per-call micropayments using the [x402 protocol](https://x402.org). Payment is disabled by default — set at least one wallet address to enable it.
+
+### How it works
+
+- Read tools (`get_tvl`, `get_asset_price`, …) cost **$0.001 USDC** per call
+- Analysis tools (`analyze_cdp_health`) cost **$0.005 USDC** per call
+- Write tools (`open_cdp`, `mint_cdp`, …) cost **$0.01 USDC** per call
+- Tools called without a valid payment return a `402 Payment Required` JSON response with an `accepts[]` array listing supported chains and amounts
+
+### Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `X402_EVM_ADDRESS` | to enable | — | EVM wallet to receive USDC on Base |
+| `X402_CARDANO_ADDRESS` | optional | — | Cardano address to receive USDM on Cardano |
+| `X402_TESTNET` | optional | `false` | Use Base Sepolia / Cardano preprod |
+| `X402_FACILITATOR_URL` | optional | `https://x402.org/facilitator` | Override facilitator |
+
+### Local development
+
+```bash
+# 1. Copy example env
+cp .env.example .env
+# Edit .env and fill in X402_EVM_ADDRESS (and optionally X402_CARDANO_ADDRESS)
+
+# 2. Start the HTTP server
+MCP_TRANSPORT=http PORT=3000 npm run dev
+
+# 3. Run the payment e2e tests
+X402_EVM_ADDRESS=0x... X402_TESTNET=true npm test -- x402-payment
+```
+
+The e2e tests work without a real wallet address — the "real env" test case is the only one that requires `X402_EVM_ADDRESS` to be set.
+
+### MCP client config with x402
+
+Add the `env` block to whichever MCP config file your client uses:
+
+**Claude Code** (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
+        "X402_EVM_ADDRESS": "0xYourEVMWalletAddress",
+        "X402_TESTNET": "true"
+      }
+    }
+  }
+}
+```
+
+**Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "indigo": {
+      "command": "npx",
+      "args": ["-y", "@indigoprotocol/indigo-mcp"],
+      "env": {
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
+        "X402_EVM_ADDRESS": "0xYourEVMWalletAddress",
+        "X402_TESTNET": "true"
+      }
+    }
+  }
+}
+```
+
+**Cursor / Windsurf** — same `env` block applies to `~/.cursor/mcp.json` or `~/.codeium/windsurf/mcp_config.json`.
+
+> Set `X402_TESTNET` to `false` (or omit it) for Base mainnet / Cardano mainnet.
+
 ## License
 
 ISC
