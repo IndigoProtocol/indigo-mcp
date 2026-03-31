@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { withX402 } from '@qbtlabs/x402';
 import { registerTools } from './tools/index.js';
 import { registerResources } from './resources/index.js';
+import { withAutoPayment } from './payment-client.js';
 import './payment.js';
 
 const SERVER_NAME = 'indigo-mcp';
@@ -26,7 +27,7 @@ export function createServer(): McpServer {
     const lastIdx = rest.length - 1;
     if (typeof rest[lastIdx] === 'function') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rest[lastIdx] = withX402(name, rest[lastIdx] as any);
+      rest[lastIdx] = withAutoPayment(withX402(name, rest[lastIdx] as any));
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (originalTool as any).apply(server, [name, ...rest]);

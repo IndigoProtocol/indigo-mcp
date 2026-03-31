@@ -13,7 +13,11 @@ configure({
   cardano: process.env.X402_CARDANO_ADDRESS
     ? { address: process.env.X402_CARDANO_ADDRESS }
     : undefined,
-  facilitatorUrl: process.env.X402_FACILITATOR_URL ?? 'https://x402.org/facilitator',
+  // PAYMENT_SERVER is an alias for the facilitator URL (mirrors openmm-mcp convention)
+  facilitatorUrl:
+    process.env.PAYMENT_SERVER ??
+    process.env.X402_FACILITATOR_URL ??
+    'https://x402.org/facilitator',
   testnet: process.env.X402_TESTNET === 'true',
 });
 
