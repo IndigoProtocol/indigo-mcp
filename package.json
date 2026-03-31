@@ -53,6 +53,7 @@
     "@indigoprotocol/indigo-sdk": "^1.0.6",
     "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
+    "@qbtlabs/x402": "^0.5.0",
     "@types/node": "^24.3.1",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
