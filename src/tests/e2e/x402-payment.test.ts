@@ -37,11 +37,20 @@ function b64(obj: unknown): string {
 }
 
 // ─── Suite: x402 disabled (no address configured) ───────────────────────────
+// getConfig() falls back to process.env vars even after resetConfig(), so we
+// must stub them out for tests that assert the "no chain configured" branch.
 
 describe('withX402 — disabled (no chain address configured)', () => {
   beforeEach(() => {
     resetConfig();
+    vi.stubEnv('X402_EVM_ADDRESS', '');
+    vi.stubEnv('X402_SOLANA_ADDRESS', '');
+    vi.stubEnv('X402_CARDANO_ADDRESS', '');
     successHandler.mockClear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('passes through to handler when x402 is not configured', async () => {
@@ -226,7 +235,11 @@ describe('buildPaymentRequirements — output shape', () => {
 
   it('returns empty accepts[] when no chain configured', () => {
     resetConfig();
+    vi.stubEnv('X402_EVM_ADDRESS', '');
+    vi.stubEnv('X402_SOLANA_ADDRESS', '');
+    vi.stubEnv('X402_CARDANO_ADDRESS', '');
     const reqs = buildPaymentRequirements(0.001);
+    vi.unstubAllEnvs();
     expect(reqs.accepts).toEqual([]);
   });
 
