@@ -262,4 +262,44 @@ describe('buildPaymentRequirements — output shape', () => {
     expect(reqs.accepts[0].network).toBe('eip155:8453');
     expect(reqs.accepts[0].asset).toBe('0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
   });
+
+  // ── Known gap: Cardano not yet included in accepts[] ──────────────────────
+  //
+  // @qbtlabs/x402 v0.5.0 has full Cardano signing + verification support
+  // (chains/cardano.js) but buildPaymentRequirements() iterates USDC_CONTRACTS
+  // which has no cardano:mainnet / cardano:preprod entry. The X402Config.cardano
+  // type also has no field to specify which native token (iUSD / USDM / DJED /
+  // USDCx) to advertise. cardano:mainnet appears in getActiveChains() but the
+  // accept entry is silently dropped.
+  //
+  // Impact: EVM payments work correctly. Setting X402_CARDANO_ADDRESS only
+  // enables Cardano payment *verification* for clients that independently know
+  // the address; no Cardano accept entry is emitted in the 402 response.
+  //
+  // Tracking: upstream fix needed in @qbtlabs/x402 — add KNOWN_CARDANO_TOKENS
+  // entries to USDC_CONTRACTS and a `token?` field to ChainConfig.cardano.
+
+  it('Cardano accept entry absent from accepts[] (known @qbtlabs/x402 gap)', () => {
+    const CARDANO_ADDR =
+      'addr1q8llh6ptjxa9r5d9kmc3vumd0t6vq0rtghflczqfn06am4l9qmadxzas5wmphtlevu6xghk6c68gxssa7ztaklrjvkzswtpn8t';
+
+    configure({
+      evm:     { address: DUMMY_EVM_ADDRESS },
+      cardano: { address: CARDANO_ADDR },
+      testnet: false,
+    });
+
+    const reqs = buildPaymentRequirements(0.001);
+
+    // cardano:mainnet IS in the active chain list …
+    // (tested indirectly by confirming accepts length stays at 1, not 2)
+
+    // … but NOT in accepts[] because USDC_CONTRACTS has no cardano entry
+    expect(reqs.accepts).toHaveLength(1);
+    expect(reqs.accepts[0].network).toBe('eip155:8453');
+
+    // Explicitly assert no Cardano network in accepts[]
+    const cardanoEntry = reqs.accepts.find(a => a.network.startsWith('cardano:'));
+    expect(cardanoEntry).toBeUndefined();
+  });
 });
