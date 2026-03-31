@@ -150,19 +150,16 @@ describe('withX402 — 402 when payment missing', () => {
     expect(body.price).toBeGreaterThan(0.001);
   });
 
-  it.skipIf(!hasAddress)(
-    'real env: accepts[] payTo matches X402_EVM_ADDRESS',
-    async () => {
-      const wrapped = withX402('get_tvl', successHandler);
-      const result = await wrapped({});
-      const body = JSON.parse(result.content[0].text);
+  it.skipIf(!hasAddress)('real env: accepts[] payTo matches X402_EVM_ADDRESS', async () => {
+    const wrapped = withX402('get_tvl', successHandler);
+    const result = await wrapped({});
+    const body = JSON.parse(result.content[0].text);
 
-      const evmAccept = body.accepts.find((a: { network: string }) =>
-        a.network.startsWith('eip155:')
-      );
-      expect(evmAccept.payTo).toBe(process.env.X402_EVM_ADDRESS);
-    }
-  );
+    const evmAccept = body.accepts.find((a: { network: string }) =>
+      a.network.startsWith('eip155:')
+    );
+    expect(evmAccept.payTo).toBe(process.env.X402_EVM_ADDRESS);
+  });
 });
 
 // ─── Suite: x402 enabled — malformed payment ────────────────────────────────
@@ -284,7 +281,7 @@ describe('buildPaymentRequirements — output shape', () => {
       'addr1q8llh6ptjxa9r5d9kmc3vumd0t6vq0rtghflczqfn06am4l9qmadxzas5wmphtlevu6xghk6c68gxssa7ztaklrjvkzswtpn8t';
 
     configure({
-      evm:     { address: DUMMY_EVM_ADDRESS },
+      evm: { address: DUMMY_EVM_ADDRESS },
       cardano: { address: CARDANO_ADDR },
       testnet: false,
     });
@@ -299,7 +296,7 @@ describe('buildPaymentRequirements — output shape', () => {
     expect(reqs.accepts[0].network).toBe('eip155:8453');
 
     // Explicitly assert no Cardano network in accepts[]
-    const cardanoEntry = reqs.accepts.find(a => a.network.startsWith('cardano:'));
+    const cardanoEntry = reqs.accepts.find((a) => a.network.startsWith('cardano:'));
     expect(cardanoEntry).toBeUndefined();
   });
 });

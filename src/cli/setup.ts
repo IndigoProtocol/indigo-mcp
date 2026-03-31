@@ -43,19 +43,19 @@ interface ServerConfig {
 function detectNvmPath(): { isNvm: boolean; nodePath: string | null; npxPath: string | null } {
   const nodePath = process.execPath;
   const isNvm = nodePath.includes('.nvm/versions/node');
-  
+
   if (isNvm) {
     const nodeDir = path.dirname(nodePath);
     const npxPath = path.join(nodeDir, 'npx');
     return { isNvm: true, nodePath: nodeDir, npxPath };
   }
-  
+
   return { isNvm: false, nodePath: null, npxPath: null };
 }
 
 function getIndigoServerConfig(): ServerConfig {
   const { isNvm, nodePath, npxPath } = detectNvmPath();
-  
+
   if (isNvm && npxPath && nodePath) {
     // nvm detected - use full paths
     return {
@@ -68,7 +68,7 @@ function getIndigoServerConfig(): ServerConfig {
       },
     };
   }
-  
+
   // Standard config
   return {
     command: 'npx',
