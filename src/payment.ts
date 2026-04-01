@@ -1,8 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { wrapWithSplitPayment } from '@qbtlabs/x402/split';
 
-export const DEFAULT_WORKER_URL = 'https://mcp.openmm.io';
-
 export const FREE_TOOLS: string[] = [];
 
 export function applyPaymentGate(server: McpServer): void {
@@ -10,7 +8,7 @@ export function applyPaymentGate(server: McpServer): void {
   if (!privateKey) return;
 
   const workerUrl =
-    process.env.PAYMENT_SERVER ?? process.env.X402_FACILITATOR_URL ?? DEFAULT_WORKER_URL;
+    process.env.PAYMENT_SERVER ?? process.env.X402_FACILITATOR_URL ?? 'https://mcp.openmm.io';
 
   wrapWithSplitPayment(server as any, {
     privateKey,
