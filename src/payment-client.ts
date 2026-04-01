@@ -24,7 +24,11 @@ const LOG_FILE = process.env.X402_LOG_FILE ?? '/tmp/indigo-mcp-x402.log';
 function log(msg: string): void {
   const line = `${new Date().toISOString()} ${msg}\n`;
   process.stderr.write(line);
-  try { appendFileSync(LOG_FILE, line); } catch { /* ignore */ }
+  try {
+    appendFileSync(LOG_FILE, line);
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -50,9 +54,7 @@ export function withAutoPayment(handler: AnyHandler): AnyHandler {
 
     if (parsed['code'] !== 402) return result;
 
-    const requirements = parsePaymentRequired(
-      parsed as Parameters<typeof parsePaymentRequired>[0],
-    );
+    const requirements = parsePaymentRequired(parsed as Parameters<typeof parsePaymentRequired>[0]);
     if (!requirements) return result;
 
     const signed = await signPayment({
@@ -64,13 +66,19 @@ export function withAutoPayment(handler: AnyHandler): AnyHandler {
 
     const paymentSignature = buildPaymentPayload(signed);
 
-    log(`[x402] paying $${requirements.price} USDC → ${requirements.payTo} (chain ${requirements.chainId}) from ${signed.from}`);
+    log(
+      `[x402] paying $${requirements.price} USDC → ${requirements.payTo} (chain ${requirements.chainId}) from ${signed.from}`
+    );
 
     const finalResult = await handler({ ...params, paymentSignature });
 
     const finalText = finalResult?.content?.[0]?.text ?? '';
     let finalParsed: Record<string, unknown> = {};
-    try { finalParsed = JSON.parse(finalText); } catch { /* not JSON */ }
+    try {
+      finalParsed = JSON.parse(finalText);
+    } catch {
+      /* not JSON */
+    }
 
     if (finalParsed['code'] === 402) {
       log(`[x402] payment verification failed: ${finalParsed['reason'] ?? finalText}`);
