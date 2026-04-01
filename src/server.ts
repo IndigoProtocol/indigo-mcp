@@ -16,10 +16,6 @@ export function createServer(): McpServer {
     version: SERVER_VERSION,
   });
 
-  // Apply split payment gate before registering tools.
-  // wrapWithSplitPayment patches server.tool internally so every handler
-  // goes through the mcp.openmm.io proxy for payment verification.
-  // No-op when X402_PRIVATE_KEY is not set.
   applyPaymentGate(server);
 
   registerTools(server);
