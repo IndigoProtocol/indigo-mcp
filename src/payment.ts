@@ -1,115 +1,60 @@
 /**
- * Payment module — x402 per-tool payment gating
+ * Payment module — x402 split execution payment gate
  *
- * Configures chain addresses and maps every Indigo MCP tool to a pricing tier.
- * Import this module before registering tools so configure() and setToolPrices()
- * are in effect when withX402 wrappers evaluate their first call.
+ * Routes payment verification through the openmm.io proxy (or a custom
+ * PAYMENT_SERVER) instead of directly to the x402.org facilitator.
+ *
+ * Split execution flow:
+ *   1. Tool is called (no payment header required from the caller)
+ *   2. Gate intercepts and POSTs to workerUrl/verify-payment
+ *   3. Worker responds 402 with EIP-3009 requirements
+ *   4. Gate signs locally with X402_PRIVATE_KEY — key never leaves this process
+ *   5. Gate retries with X-PAYMENT header → worker verifies on-chain, issues JWT
+ *   6. Gate verifies JWT locally, then executes the original tool handler
+ *   7. Payment metadata (tx hash) is injected into the tool response
+ *
+ * Process isolation: the openmm.io worker handles all settlement logic.
+ * indigo-mcp never holds the recipient wallet — only the payer key.
  */
 
-import { configure, setToolPrices } from '@qbtlabs/x402';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { wrapWithSplitPayment } from '@qbtlabs/x402/split';
 
-configure({
-  evm: { address: process.env.X402_EVM_ADDRESS! },
-  cardano: process.env.X402_CARDANO_ADDRESS
-    ? { address: process.env.X402_CARDANO_ADDRESS }
-    : undefined,
-  // PAYMENT_SERVER is an alias for the facilitator URL (mirrors openmm-mcp convention)
-  facilitatorUrl:
-    process.env.PAYMENT_SERVER ??
-    process.env.X402_FACILITATOR_URL ??
-    'https://x402.org/facilitator',
-  testnet: process.env.X402_TESTNET === 'true',
-});
+/** Default proxy / settlement worker. Override with PAYMENT_SERVER env var. */
+export const DEFAULT_WORKER_URL = 'https://mcp.openmm.io';
 
-setToolPrices({
-  // ── Read-only tools: protocol state, prices, positions ──────────────────
-  // Analytics
-  get_tvl: 'read',
-  get_apr_rewards: 'read',
-  get_apr_by_key: 'read',
-  get_dex_yields: 'read',
-  get_protocol_stats: 'read',
+/**
+ * Tool names that bypass payment entirely.
+ * Empty by default — all 40 Indigo tools require payment when enabled.
+ * Add tool names here to make them always free.
+ */
+export const FREE_TOOLS: string[] = [];
 
-  // Asset / price feeds
-  get_assets: 'read',
-  get_asset: 'read',
-  get_asset_price: 'read',
-  get_ada_price: 'read',
-  get_indy_price: 'read',
+/**
+ * Apply the split payment gate to an MCP server.
+ * Must be called BEFORE registerTools().
+ *
+ * Payment is enabled when X402_PRIVATE_KEY is set (the payer wallet).
+ * When disabled this is a no-op — all tools execute without payment.
+ *
+ * @example
+ * ```bash
+ * X402_PRIVATE_KEY=0x...  # EVM payer wallet — auto-signs tool payments
+ * PAYMENT_SERVER=https://mcp.openmm.io  # proxy (default)
+ * X402_TESTNET=true  # Base Sepolia
+ * ```
+ */
+export function applyPaymentGate(server: McpServer): void {
+  const privateKey = process.env.X402_PRIVATE_KEY as `0x${string}` | undefined;
+  if (!privateKey) return;
 
-  // CDP read
-  get_all_cdps: 'read',
-  get_cdps_by_owner: 'read',
-  get_cdps_by_address: 'read',
-  analyze_cdp_health: 'analysis',
+  const workerUrl =
+    process.env.PAYMENT_SERVER ?? process.env.X402_FACILITATOR_URL ?? DEFAULT_WORKER_URL;
 
-  // Collector / IPFS read
-  get_collector_utxos: 'read',
-  retrieve_from_ipfs: 'read',
-
-  // DEX
-  get_steelswap_tokens: 'read',
-  get_steelswap_estimate: 'read',
-  get_iris_liquidity_pools: 'read',
-  get_blockfrost_balances: 'read',
-
-  // Governance
-  get_protocol_params: 'read',
-  get_temperature_checks: 'read',
-  get_polls: 'read',
-
-  // Redemption
-  get_order_book: 'read',
-  get_redemption_orders: 'read',
-  get_redemption_queue: 'read',
-
-  // Stability pool read
-  get_stability_pools: 'read',
-  get_stability_pool_accounts: 'read',
-  get_sp_account_by_owner: 'read',
-
-  // Staking read
-  get_staking_info: 'read',
-  get_staking_positions: 'read',
-  get_staking_positions_by_owner: 'read',
-  get_staking_position_by_address: 'read',
-
-  // ── Write tools: transaction builders / on-chain mutations ──────────────
-  // CDP write
-  open_cdp: 'write',
-  deposit_cdp: 'write',
-  withdraw_cdp: 'write',
-  close_cdp: 'write',
-  mint_cdp: 'write',
-  burn_cdp: 'write',
-  leverage_cdp: 'write',
-
-  // CDP liquidation
-  liquidate_cdp: 'write',
-  redeem_cdp: 'write',
-  freeze_cdp: 'write',
-  merge_cdps: 'write',
-
-  // ROB write
-  open_rob: 'write',
-  cancel_rob: 'write',
-  adjust_rob: 'write',
-  claim_rob: 'write',
-  redeem_rob: 'write',
-
-  // Stability pool write
-  process_sp_request: 'write',
-  annul_sp_request: 'write',
-  create_sp_account: 'write',
-  adjust_sp_account: 'write',
-  close_sp_account: 'write',
-
-  // Staking write
-  open_staking_position: 'write',
-  adjust_staking_position: 'write',
-  close_staking_position: 'write',
-  distribute_staking_rewards: 'write',
-
-  // IPFS write
-  store_on_ipfs: 'write',
-});
+  wrapWithSplitPayment(server as any, {
+    privateKey,
+    workerUrl,
+    testnet: process.env.X402_TESTNET === 'true',
+    freeTools: FREE_TOOLS,
+  });
+}

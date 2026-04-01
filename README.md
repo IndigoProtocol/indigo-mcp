@@ -452,13 +452,10 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `CARDANO_NETWORK`      | No            | `mainnet`                                    | Cardano network: `mainnet`, `preprod`, or `preview`         |
 | `MCP_TRANSPORT`        | No            | `stdio`                                      | Transport mode: `stdio` or `http`                           |
 | `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`)      |
-| `X402_EVM_ADDRESS`     | No            | —                                            | EVM wallet to receive USDC on Base (enables payment gating) |
-| `X402_CARDANO_ADDRESS` | No            | —                                            | Cardano address for future USDM support                     |
-| `X402_TESTNET`         | No            | `false`                                      | Use Base Sepolia for payments                               |
-| `X402_FACILITATOR_URL` | No            | `https://x402.org/facilitator`               | x402 facilitator URL                                        |
-| `PAYMENT_SERVER`       | No            | —                                            | Alias for `X402_FACILITATOR_URL` (takes precedence)         |
-| `X402_PRIVATE_KEY`     | No            | —                                            | EVM private key for client-side auto-payment                |
-| `X402_LOG_FILE`        | No            | `/tmp/indigo-mcp-x402.log`                   | Payment event log file                                      |
+| `X402_PRIVATE_KEY`     | No            | —                                            | EVM private key (`0x…`) of the payer wallet — enables auto-payment via split flow |
+| `PAYMENT_SERVER`       | No            | `https://mcp.openmm.io`                      | Settlement worker / proxy URL                               |
+| `X402_TESTNET`         | No            | `false`                                      | Use Base Sepolia testnet                                    |
+| `X402_FACILITATOR_URL` | No            | —                                            | Fallback facilitator (used only when `PAYMENT_SERVER` unset) |
 
 ## Example Queries
 
@@ -572,49 +569,50 @@ Indigo MCP optionally gates tools behind per-call micropayments using the [x402 
 
 ### How it works
 
+Payment uses the **split execution** model — the same architecture as openMM-MCP:
+
+1. A tool is called (no payment header needed from the caller)
+2. The gate intercepts and contacts the **settlement worker** (`mcp.openmm.io` by default)
+3. Worker responds `402` with EIP-3009 requirements (amount, recipient, chain)
+4. Gate **signs locally** using `X402_PRIVATE_KEY` — the key never leaves this process
+5. Gate retries with the signed payment → worker verifies on-chain, issues a JWT
+6. Gate verifies JWT locally, executes the original tool handler
+7. Settlement tx hash is injected into the tool response
+
+This keeps process isolation clean: indigo-mcp never holds the recipient wallet — only the payer key. Verification and settlement are handled by the openmm.io proxy.
+
 - Read tools (`get_tvl`, `get_asset_price`, …) cost **$0.001 USDC** per call
 - Analysis tools (`analyze_cdp_health`) cost **$0.005 USDC** per call
 - Write tools (`open_cdp`, `mint_cdp`, …) cost **$0.01 USDC** per call
-- Tools called without a valid payment return a `402 Payment Required` JSON response with an `accepts[]` array listing supported chains and amounts
 
 ### Environment variables
 
-| Variable               | Required  | Default                        | Description                                                         |
-| ---------------------- | --------- | ------------------------------ | ------------------------------------------------------------------- |
-| `X402_EVM_ADDRESS`     | to enable | —                              | EVM wallet to receive USDC on Base                                  |
-| `X402_CARDANO_ADDRESS` | optional  | —                              | Cardano address to receive USDM on Cardano                          |
-| `X402_TESTNET`         | optional  | `false`                        | Use Base Sepolia / Cardano preprod                                  |
-| `X402_FACILITATOR_URL` | optional  | `https://x402.org/facilitator` | Facilitator URL for payment verification                            |
-| `PAYMENT_SERVER`       | optional  | —                              | Alias for `X402_FACILITATOR_URL` (takes precedence if both are set) |
-| `X402_PRIVATE_KEY`     | optional  | —                              | EVM private key (`0x…`) for client-side auto-payment (see below)    |
-| `X402_LOG_FILE`        | optional  | `/tmp/indigo-mcp-x402.log`     | File path for payment event logs                                    |
+| Variable               | Required  | Default                 | Description                                                                    |
+| ---------------------- | --------- | ----------------------- | ------------------------------------------------------------------------------ |
+| `X402_PRIVATE_KEY`     | to enable | —                       | EVM private key (`0x…`) of the payer wallet — enables split payment            |
+| `PAYMENT_SERVER`       | optional  | `https://mcp.openmm.io` | Settlement worker / proxy URL                                                  |
+| `X402_TESTNET`         | optional  | `false`                 | Use Base Sepolia testnet                                                        |
+| `X402_FACILITATOR_URL` | optional  | —                       | Fallback facilitator URL (used only when `PAYMENT_SERVER` is not set)          |
 
-### Auto-payment (client-side / facilitator settlement)
+### Split execution flow
 
-When `X402_PRIVATE_KEY` is set, the server acts as both gatekeeper **and** payer. Every outbound tool call that returns a `402 Payment Required` response is automatically:
+When `X402_PRIVATE_KEY` is set, every paid tool call is handled transparently:
 
-1. Parsed for payment requirements (`payTo`, `price`, `chainId`)
-2. Signed with the configured private key
-3. Retried with the `paymentSignature` attached
-4. Logged to stderr and `X402_LOG_FILE`
+1. Gate contacts `PAYMENT_SERVER` (`https://mcp.openmm.io` by default)
+2. Signs EIP-3009 locally — the private key never leaves this process
+3. Proxy verifies on-chain, issues a short-lived JWT
+4. Gate verifies JWT, executes tool, injects settlement tx hash into response
 
-This is useful when indigo-mcp is running behind a facilitator (e.g. `PAYMENT_SERVER=https://your-facilitator`) that handles settlement, and you want the server to pay on behalf of its callers transparently.
+If `X402_PRIVATE_KEY` is not set the gate is disabled and all tools execute without payment.
 
 ```bash
-# Run with auto-payment enabled
-X402_EVM_ADDRESS=0xYourReceiver \
+# Minimal: just set the payer key (proxy defaults to mcp.openmm.io)
+X402_PRIVATE_KEY=0xYourPayerPrivateKey npx @indigoprotocol/indigo-mcp
+
+# Self-hosted proxy
 X402_PRIVATE_KEY=0xYourPayerPrivateKey \
-PAYMENT_SERVER=https://your-facilitator \
+PAYMENT_SERVER=https://your-own-proxy \
 npx @indigoprotocol/indigo-mcp
-```
-
-If `X402_PRIVATE_KEY` is not set, auto-payment is disabled and 402 responses are returned as-is to the MCP client.
-
-All payment events (signing, success, verification failure) are written to both stderr and the log file:
-
-```
-2026-03-31T19:21:00.000Z [x402] paying $0.001 USDC → 0xReceiver (chain 8453) from 0xPayer
-2026-03-31T19:21:00.123Z [x402] payment accepted — tool executed successfully
 ```
 
 ### Local development
@@ -622,16 +620,14 @@ All payment events (signing, success, verification failure) are written to both 
 ```bash
 # 1. Copy example env
 cp .env.example .env
-# Edit .env and fill in X402_EVM_ADDRESS (and optionally X402_CARDANO_ADDRESS)
+# Edit .env and set X402_PRIVATE_KEY to a funded Base Sepolia wallet
 
 # 2. Start the HTTP server
 MCP_TRANSPORT=http PORT=3000 npm run dev
 
 # 3. Run the payment e2e tests
-X402_EVM_ADDRESS=0x... X402_TESTNET=true npm test -- x402-payment
+X402_TESTNET=true npm test -- x402-payment
 ```
-
-The e2e tests work without a real wallet address — the "real env" test case is the only one that requires `X402_EVM_ADDRESS` to be set.
 
 ### MCP client config with x402
 
@@ -648,7 +644,7 @@ Add the `env` block to whichever MCP config file your client uses:
       "env": {
         "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
-        "X402_EVM_ADDRESS": "0xYourEVMWalletAddress",
+        "X402_PRIVATE_KEY": "0xYourPayerPrivateKey",
         "X402_TESTNET": "true"
       }
     }
@@ -667,7 +663,7 @@ Add the `env` block to whichever MCP config file your client uses:
       "env": {
         "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
-        "X402_EVM_ADDRESS": "0xYourEVMWalletAddress",
+        "X402_PRIVATE_KEY": "0xYourPayerPrivateKey",
         "X402_TESTNET": "true"
       }
     }
@@ -677,7 +673,7 @@ Add the `env` block to whichever MCP config file your client uses:
 
 **Cursor / Windsurf** — same `env` block applies to `~/.cursor/mcp.json` or `~/.codeium/windsurf/mcp_config.json`.
 
-> Set `X402_TESTNET` to `false` (or omit it) for Base mainnet / Cardano mainnet.
+> Set `X402_TESTNET` to `false` (or omit it) for Base mainnet.
 
 ## License
 

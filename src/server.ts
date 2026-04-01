@@ -3,11 +3,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createServer as createHttpServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
-import { withX402 } from '@qbtlabs/x402';
 import { registerTools } from './tools/index.js';
 import { registerResources } from './resources/index.js';
-import { withAutoPayment } from './payment-client.js';
-import './payment.js';
+import { applyPaymentGate } from './payment.js';
 
 const SERVER_NAME = 'indigo-mcp';
 const SERVER_VERSION = '0.2.0';
@@ -18,20 +16,11 @@ export function createServer(): McpServer {
     version: SERVER_VERSION,
   });
 
-  // Intercept server.tool to auto-apply withX402 around every handler.
-  // This avoids modifying each of the 19 tool files individually.
-  // withX402 is a no-op when X402_EVM_ADDRESS (or any chain address) is not set.
-  const originalTool = server.tool.bind(server);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (server as any).tool = function (name: string, ...rest: unknown[]): unknown {
-    const lastIdx = rest.length - 1;
-    if (typeof rest[lastIdx] === 'function') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      rest[lastIdx] = withAutoPayment(withX402(name, rest[lastIdx] as any));
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (originalTool as any).apply(server, [name, ...rest]);
-  };
+  // Apply split payment gate before registering tools.
+  // wrapWithSplitPayment patches server.tool internally so every handler
+  // goes through the mcp.openmm.io proxy for payment verification.
+  // No-op when X402_PRIVATE_KEY is not set.
+  applyPaymentGate(server);
 
   registerTools(server);
   registerResources(server);
