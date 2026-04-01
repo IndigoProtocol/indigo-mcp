@@ -90,6 +90,7 @@ npx @indigoprotocol/indigo-mcp setup
 ```
 
 This will:
+
 1. Ask which client you're using (Claude Desktop, Claude Code, Cursor, Windsurf)
 2. Prompt for your Blockfrost API key
 3. Automatically update your config file
@@ -124,6 +125,7 @@ MCP_TRANSPORT=http PORT=3000 npx @indigoprotocol/indigo-mcp
 ```
 
 This starts an HTTP server with:
+
 - `POST /mcp` — MCP endpoint (Streamable HTTP with SSE)
 - `GET /health` — Health check
 
@@ -144,6 +146,7 @@ notepad "$env:APPDATA\Claude\claude_desktop_config.json"
 ```
 
 **Standard config:**
+
 ```json
 {
   "mcpServers": {
@@ -301,154 +304,161 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 ### Asset Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_assets` | Get all Indigo iAssets with prices and interest data | None |
-| `get_asset` | Get details for a specific iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
-| `get_asset_price` | Get the current price for a specific iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
-| `get_ada_price` | Get the current ADA price in USD | None |
-| `get_indy_price` | Get the current INDY token price in ADA and USD | None |
+| Tool              | Description                                          | Parameters                         |
+| ----------------- | ---------------------------------------------------- | ---------------------------------- |
+| `get_assets`      | Get all Indigo iAssets with prices and interest data | None                               |
+| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, or iSOL |
+| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, or iSOL |
+| `get_ada_price`   | Get the current ADA price in USD                     | None                               |
+| `get_indy_price`  | Get the current INDY token price in ADA and USD      | None                               |
 
 ### CDP / Loan Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_all_cdps` | Get all CDPs/loans, optionally filtered by iAsset | `asset?`: iAsset filter; `limit?`: 1-500 (default 50); `offset?`: pagination offset |
-| `get_cdps_by_owner` | Get CDPs for a specific owner | `owner`: payment key hash (56-char hex) or bech32 address |
-| `get_cdps_by_address` | Get CDPs for a specific Cardano address | `address`: bech32 address (addr1... or addr_test1...) |
-| `analyze_cdp_health` | Analyze collateral ratios and liquidation risk | `owner`: payment key hash or bech32 address |
+| Tool                  | Description                                       | Parameters                                                                          |
+| --------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `get_all_cdps`        | Get all CDPs/loans, optionally filtered by iAsset | `asset?`: iAsset filter; `limit?`: 1-500 (default 50); `offset?`: pagination offset |
+| `get_cdps_by_owner`   | Get CDPs for a specific owner                     | `owner`: payment key hash (56-char hex) or bech32 address                           |
+| `get_cdps_by_address` | Get CDPs for a specific Cardano address           | `address`: bech32 address (addr1... or addr_test1...)                               |
+| `analyze_cdp_health`  | Analyze collateral ratios and liquidation risk    | `owner`: payment key hash or bech32 address                                         |
 
 ### CDP Write Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `open_cdp` | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
-| `deposit_cdp` | Deposit additional collateral into a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace |
-| `withdraw_cdp` | Withdraw collateral from a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace |
-| `close_cdp` | Close a CDP and reclaim collateral | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
+| Tool           | Description                                        | Parameters                                                                                                                      |
+| -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
+| `deposit_cdp`  | Deposit additional collateral into a CDP           | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
+| `withdraw_cdp` | Withdraw collateral from a CDP                     | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
+| `close_cdp`    | Close a CDP and reclaim collateral                 | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                       |
 
 ### CDP Mint/Burn Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
+| Tool       | Description                                                   | Parameters                                                                                                                                                                      |
+| ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
-| `burn_cdp` | Burn iAssets to reduce CDP debt | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
 
 ### CDP Liquidation & Redemption Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `liquidate_cdp` | Liquidate an undercollateralized CDP through the stability pool | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
-| `redeem_cdp` | Redeem iAssets from a CDP | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: iAsset amount in smallest unit |
-| `freeze_cdp` | Freeze a CDP to prevent further operations | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index |
-| `merge_cdps` | Merge multiple CDPs into one | `address`: bech32 address; `cdpOutRefs`: array of `{txHash, outputIndex}` (min 2) |
+| Tool            | Description                                                     | Parameters                                                                                                                                          |
+| --------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `liquidate_cdp` | Liquidate an undercollateralized CDP through the stability pool | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                                           |
+| `redeem_cdp`    | Redeem iAssets from a CDP                                       | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: iAsset amount in smallest unit |
+| `freeze_cdp`    | Freeze a CDP to prevent further operations                      | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                                           |
+| `merge_cdps`    | Merge multiple CDPs into one                                    | `address`: bech32 address; `cdpOutRefs`: array of `{txHash, outputIndex}` (min 2)                                                                   |
 
 ### Leverage CDP Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
+| Tool           | Description                                             | Parameters                                                                                                       |
+| -------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `leverage_cdp` | Open a leveraged CDP by redeeming against ROB positions | `address`: bech32 address; `asset`: iAsset; `leverage`: multiplier (e.g. 2.0); `baseCollateral`: lovelace amount |
 
 ### Stability Pool Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_stability_pools` | Get the latest stability pool state for each iAsset | None |
-| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, or iSOL |
-| `get_sp_account_by_owner` | Get stability pool accounts for specific owners | `owners`: array of payment key hashes or bech32 addresses |
+| Tool                          | Description                                                         | Parameters                                                |
+| ----------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
+| `get_stability_pools`         | Get the latest stability pool state for each iAsset                 | None                                                      |
+| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, or iSOL                       |
+| `get_sp_account_by_owner`     | Get stability pool accounts for specific owners                     | `owners`: array of payment key hashes or bech32 addresses |
 
 ### Staking Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_staking_info` | Get the current INDY staking manager state | None |
-| `get_staking_positions` | Get all open INDY staking positions | None |
-| `get_staking_positions_by_owner` | Get INDY staking positions for specific owners | `owners`: array of payment key hashes or bech32 addresses |
-| `get_staking_position_by_address` | Get INDY staking positions for a single address | `address`: Cardano bech32 address |
+| Tool                              | Description                                     | Parameters                                                |
+| --------------------------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| `get_staking_info`                | Get the current INDY staking manager state      | None                                                      |
+| `get_staking_positions`           | Get all open INDY staking positions             | None                                                      |
+| `get_staking_positions_by_owner`  | Get INDY staking positions for specific owners  | `owners`: array of payment key hashes or bech32 addresses |
+| `get_staking_position_by_address` | Get INDY staking positions for a single address | `address`: Cardano bech32 address                         |
 
 ### Stability Pool Request Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
+| Tool                 | Description                                                     | Parameters                                                                                                            |
+| -------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `process_sp_request` | Process a pending stability pool request (protocol maintenance) | `address`: bech32 address; `asset`: iAsset; `accountTxHash`: account UTxO tx hash; `accountOutputIndex`: output index |
-| `annul_sp_request` | Cancel a pending stability pool request | `address`: bech32 address; `accountTxHash`: account UTxO tx hash; `accountOutputIndex`: output index |
+| `annul_sp_request`   | Cancel a pending stability pool request                         | `address`: bech32 address; `accountTxHash`: account UTxO tx hash; `accountOutputIndex`: output index                  |
 
 ### Staking Write Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `open_staking_position` | Stake INDY tokens by creating a new staking position | `address`: bech32 address; `amount`: INDY amount in smallest unit |
+| Tool                      | Description                                              | Parameters                                                                                                                                           |
+| ------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open_staking_position`   | Stake INDY tokens by creating a new staking position     | `address`: bech32 address; `amount`: INDY amount in smallest unit                                                                                    |
 | `adjust_staking_position` | Adjust an existing staking position (add or remove INDY) | `address`: bech32 address; `amount`: positive=stake more, negative=unstake; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
-| `close_staking_position` | Close a staking position and unstake all INDY | `address`: bech32 address; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index |
+| `close_staking_position`  | Close a staking position and unstake all INDY            | `address`: bech32 address; `positionTxHash`: UTxO tx hash; `positionOutputIndex`: UTxO output index                                                  |
 
 ### Staking Reward Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
+| Tool                         | Description                                                      | Parameters                                                                       |
+| ---------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `distribute_staking_rewards` | Distribute collected ADA rewards from collector UTxOs to stakers | `address`: bech32 address; `collectorTxHashes`: array of `{txHash, outputIndex}` |
 
 ### Analytics & APR Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_tvl` | Get historical TVL data from DefiLlama | None |
-| `get_apr_rewards` | Get all APR reward records | None |
-| `get_apr_by_key` | Get APR for a specific key | `key`: APR key (e.g. sp_iUSD_indy, stake_ada) |
-| `get_dex_yields` | Get DEX farm yields for iAsset pairs | None |
-| `get_protocol_stats` | Get aggregated protocol statistics | None |
+| Tool                 | Description                            | Parameters                                    |
+| -------------------- | -------------------------------------- | --------------------------------------------- |
+| `get_tvl`            | Get historical TVL data from DefiLlama | None                                          |
+| `get_apr_rewards`    | Get all APR reward records             | None                                          |
+| `get_apr_by_key`     | Get APR for a specific key             | `key`: APR key (e.g. sp_iUSD_indy, stake_ada) |
+| `get_dex_yields`     | Get DEX farm yields for iAsset pairs   | None                                          |
+| `get_protocol_stats` | Get aggregated protocol statistics     | None                                          |
 
 ### Governance Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_protocol_params` | Get latest governance protocol parameters | None |
-| `get_temperature_checks` | Get temperature check polls | None |
-| `get_polls` | Get all governance polls | None |
+| Tool                     | Description                               | Parameters |
+| ------------------------ | ----------------------------------------- | ---------- |
+| `get_protocol_params`    | Get latest governance protocol parameters | None       |
+| `get_temperature_checks` | Get temperature check polls               | None       |
+| `get_polls`              | Get all governance polls                  | None       |
 
 ### Redemption & Order Book Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_order_book` | Get open limited redemption positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
-| `get_redemption_orders` | Get redemption orders with optional filters | `timestamp?`: Unix ms; `in_range?`: filter by price range |
-| `get_redemption_queue` | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL |
+| Tool                    | Description                                   | Parameters                                                      |
+| ----------------------- | --------------------------------------------- | --------------------------------------------------------------- |
+| `get_order_book`        | Get open limited redemption positions         | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
+| `get_redemption_orders` | Get redemption orders with optional filters   | `timestamp?`: Unix ms; `in_range?`: filter by price range       |
+| `get_redemption_queue`  | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL                              |
 
 ### ROB Write Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `open_rob` | Open a new ROB position with ADA and a max price limit | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string |
-| `cancel_rob` | Cancel an existing ROB position | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index |
-| `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price |
-| `claim_rob` | Claim received iAssets from an ROB position | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index |
-| `redeem_rob` | Redeem iAssets against one or more ROB positions | `address`: bech32 address; `redemptionRobs`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
+| Tool         | Description                                               | Parameters                                                                                                                                                                      |
+| ------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `open_rob`   | Open a new ROB position with ADA and a max price limit    | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string                                                         |
+| `cancel_rob` | Cancel an existing ROB position                           | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index                                                                                        |
+| `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price           |
+| `claim_rob`  | Claim received iAssets from an ROB position               | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index                                                                                        |
+| `redeem_rob` | Redeem iAssets against one or more ROB positions          | `address`: bech32 address; `redemptionRobs`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
 
 ### DEX Proxy Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_steelswap_tokens` | Get all tokens available on Steelswap DEX | None |
-| `get_steelswap_estimate` | Get a swap estimate from Steelswap | `tokenIn`: input token; `tokenOut`: output token; `amountIn`: amount |
-| `get_iris_liquidity_pools` | Get liquidity pools from Iris | `tokenA?`: first token; `tokenB?`: second token; `dex?`: DEX filter |
-| `get_blockfrost_balances` | Get token balances for a Cardano address | `address`: Cardano bech32 address |
+| Tool                       | Description                               | Parameters                                                           |
+| -------------------------- | ----------------------------------------- | -------------------------------------------------------------------- |
+| `get_steelswap_tokens`     | Get all tokens available on Steelswap DEX | None                                                                 |
+| `get_steelswap_estimate`   | Get a swap estimate from Steelswap        | `tokenIn`: input token; `tokenOut`: output token; `amountIn`: amount |
+| `get_iris_liquidity_pools` | Get liquidity pools from Iris             | `tokenA?`: first token; `tokenB?`: second token; `dex?`: DEX filter  |
+| `get_blockfrost_balances`  | Get token balances for a Cardano address  | `address`: Cardano bech32 address                                    |
 
 ### Collector & IPFS Tools
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
+| Tool                  | Description                              | Parameters                     |
+| --------------------- | ---------------------------------------- | ------------------------------ |
 | `get_collector_utxos` | Get collector UTXOs for fee distribution | `length?`: max UTXOs to return |
-| `store_on_ipfs` | Store text content on IPFS | `text`: content to store |
-| `retrieve_from_ipfs` | Retrieve content from IPFS by CID | `cid`: IPFS content identifier |
+| `store_on_ipfs`       | Store text content on IPFS               | `text`: content to store       |
+| `retrieve_from_ipfs`  | Retrieve content from IPFS by CID        | `cid`: IPFS content identifier |
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `INDEXER_URL` | No | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL |
-| `BLOCKFROST_API_KEY` | For write ops | — | Blockfrost project ID for transaction building |
-| `CARDANO_NETWORK` | No | `mainnet` | Cardano network: `mainnet`, `preprod`, or `preview` |
-| `MCP_TRANSPORT` | No | `stdio` | Transport mode: `stdio` or `http` |
-| `PORT` | No | `3000` | HTTP server port (only used when `MCP_TRANSPORT=http`) |
+| Variable               | Required      | Default                                      | Description                                                 |
+| ---------------------- | ------------- | -------------------------------------------- | ----------------------------------------------------------- |
+| `INDEXER_URL`          | No            | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL                               |
+| `BLOCKFROST_API_KEY`   | For write ops | —                                            | Blockfrost project ID for transaction building              |
+| `CARDANO_NETWORK`      | No            | `mainnet`                                    | Cardano network: `mainnet`, `preprod`, or `preview`         |
+| `MCP_TRANSPORT`        | No            | `stdio`                                      | Transport mode: `stdio` or `http`                           |
+| `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`)      |
+| `X402_EVM_ADDRESS`     | No            | —                                            | EVM wallet to receive USDC on Base (enables payment gating) |
+| `X402_CARDANO_ADDRESS` | No            | —                                            | Cardano address for future USDM support                     |
+| `X402_TESTNET`         | No            | `false`                                      | Use Base Sepolia for payments                               |
+| `X402_FACILITATOR_URL` | No            | `https://x402.org/facilitator`               | x402 facilitator URL                                        |
+| `PAYMENT_SERVER`       | No            | —                                            | Alias for `X402_FACILITATOR_URL` (takes precedence)         |
+| `X402_PRIVATE_KEY`     | No            | —                                            | EVM private key for client-side auto-payment                |
+| `X402_LOG_FILE`        | No            | `/tmp/indigo-mcp-x402.log`                   | Payment event log file                                      |
 
 ## Example Queries
 
@@ -507,6 +517,8 @@ npm run test:watch     # run tests in watch mode
 ```
 src/
 ├── index.ts                       # Server entry point (stdio transport)
+├── payment.ts                     # x402 configuration: chain addresses + tool price tiers
+├── payment-client.ts              # withAutoPayment: client-side auto-pay on 402 responses
 ├── types/
 │   └── tx-types.ts                # UnsignedTxResult, TxSummary types
 ├── tools/
@@ -567,12 +579,43 @@ Indigo MCP optionally gates tools behind per-call micropayments using the [x402 
 
 ### Environment variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `X402_EVM_ADDRESS` | to enable | — | EVM wallet to receive USDC on Base |
-| `X402_CARDANO_ADDRESS` | optional | — | Cardano address to receive USDM on Cardano |
-| `X402_TESTNET` | optional | `false` | Use Base Sepolia / Cardano preprod |
-| `X402_FACILITATOR_URL` | optional | `https://x402.org/facilitator` | Override facilitator |
+| Variable               | Required  | Default                        | Description                                                         |
+| ---------------------- | --------- | ------------------------------ | ------------------------------------------------------------------- |
+| `X402_EVM_ADDRESS`     | to enable | —                              | EVM wallet to receive USDC on Base                                  |
+| `X402_CARDANO_ADDRESS` | optional  | —                              | Cardano address to receive USDM on Cardano                          |
+| `X402_TESTNET`         | optional  | `false`                        | Use Base Sepolia / Cardano preprod                                  |
+| `X402_FACILITATOR_URL` | optional  | `https://x402.org/facilitator` | Facilitator URL for payment verification                            |
+| `PAYMENT_SERVER`       | optional  | —                              | Alias for `X402_FACILITATOR_URL` (takes precedence if both are set) |
+| `X402_PRIVATE_KEY`     | optional  | —                              | EVM private key (`0x…`) for client-side auto-payment (see below)    |
+| `X402_LOG_FILE`        | optional  | `/tmp/indigo-mcp-x402.log`     | File path for payment event logs                                    |
+
+### Auto-payment (client-side / facilitator settlement)
+
+When `X402_PRIVATE_KEY` is set, the server acts as both gatekeeper **and** payer. Every outbound tool call that returns a `402 Payment Required` response is automatically:
+
+1. Parsed for payment requirements (`payTo`, `price`, `chainId`)
+2. Signed with the configured private key
+3. Retried with the `paymentSignature` attached
+4. Logged to stderr and `X402_LOG_FILE`
+
+This is useful when indigo-mcp is running behind a facilitator (e.g. `PAYMENT_SERVER=https://your-facilitator`) that handles settlement, and you want the server to pay on behalf of its callers transparently.
+
+```bash
+# Run with auto-payment enabled
+X402_EVM_ADDRESS=0xYourReceiver \
+X402_PRIVATE_KEY=0xYourPayerPrivateKey \
+PAYMENT_SERVER=https://your-facilitator \
+npx @indigoprotocol/indigo-mcp
+```
+
+If `X402_PRIVATE_KEY` is not set, auto-payment is disabled and 402 responses are returned as-is to the MCP client.
+
+All payment events (signing, success, verification failure) are written to both stderr and the log file:
+
+```
+2026-03-31T19:21:00.000Z [x402] paying $0.001 USDC → 0xReceiver (chain 8453) from 0xPayer
+2026-03-31T19:21:00.123Z [x402] payment accepted — tool executed successfully
+```
 
 ### Local development
 
