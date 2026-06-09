@@ -2,7 +2,11 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
-import { createSpAccount, adjustSpAccount, closeSpAccount } from '@indigoprotocol/indigo-sdk';
+import {
+  requestSpAccountCreation,
+  requestSpAccountAdjustment,
+  requestSpAccountClosure,
+} from '@indigo-labs/indigo-sdk';
 import { AssetParam } from '../utils/validators.js';
 
 export function registerStabilityPoolWriteTools(server: McpServer): void {
@@ -20,7 +24,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            return createSpAccount(asset, BigInt(amount), params, lucid);
+            return requestSpAccountCreation(asset, BigInt(amount), params, lucid);
           },
           {
             type: 'create_sp_account',
@@ -69,7 +73,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            return adjustSpAccount(asset, BigInt(amount), accountUtxo, params, lucid);
+            return requestSpAccountAdjustment(BigInt(amount), accountUtxo, params, lucid);
           },
           {
             type: 'adjust_sp_account',
@@ -120,7 +124,7 @@ export function registerStabilityPoolWriteTools(server: McpServer): void {
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
             const params = await getSystemParams();
-            return closeSpAccount(accountUtxo, params, lucid);
+            return requestSpAccountClosure(accountUtxo, params, lucid);
           },
           {
             type: 'close_sp_account',

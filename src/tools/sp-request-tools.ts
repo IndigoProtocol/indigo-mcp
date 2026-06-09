@@ -1,79 +1,10 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { LucidEvolution } from '@lucid-evolution/lucid';
-import type { SystemParams } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
-import { fromText } from '@lucid-evolution/lucid';
-import {
-  processSpRequest,
-  annulRequest,
-  fromSystemParamsAsset,
-  assetClassToUnit,
-  createScriptAddress,
-  matchSingle,
-} from '@indigoprotocol/indigo-sdk';
+import { processSpRequest, annulRequest } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-
-/**
- * Find the stability pool UTxO for a given asset.
- */
-async function findStabilityPoolUtxo(asset: string, params: SystemParams, lucid: LucidEvolution) {
-  const spTokenAc = fromSystemParamsAsset(params.stabilityPoolParams.stabilityPoolToken);
-  const spAddress = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.stabilityPoolHash
-  );
-  const utxos = await lucid.utxosAtWithUnit(spAddress, assetClassToUnit(spTokenAc));
-  const assetHex = fromText(asset);
-  const spUnit = spTokenAc.currencySymbol + assetHex;
-  const matched = utxos.filter((u) => u.assets[spUnit] !== undefined);
-  return matchSingle(
-    matched,
-    (xs) => new Error(`Expected exactly one stability pool UTxO for ${asset}, found ${xs.length}`)
-  );
-}
-
-/**
- * Find the governance UTxO (holds govNFT at the gov validator address).
- */
-async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const nftAc = fromSystemParamsAsset(params.govParams.govNFT);
-  const address = createScriptAddress(lucid.config().network!, params.validatorHashes.govHash);
-  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
-  return matchSingle(utxos, (_) => new Error('Expected a single governance UTxO'));
-}
-
-/**
- * Resolve the iAsset state UTxO for a given asset name.
- */
-async function findIAssetUtxo(asset: string, params: SystemParams, lucid: LucidEvolution) {
-  const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(lucid.config().network!, params.validatorHashes.cdpHash);
-  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
-  const assetHex = fromText(asset);
-  const iAssetUnit = iAssetAuthAc.currencySymbol + assetHex;
-  const matched = utxos.filter((u) => u.assets[iAssetUnit] !== undefined);
-  return matchSingle(
-    matched,
-    (xs) => new Error(`Expected exactly one iAsset UTxO for ${asset}, found ${xs.length}`)
-  );
-}
-
-/**
- * Find a collector UTxO at the collector validator address.
- */
-async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(
-    lucid.config().network!,
-    params.validatorHashes.collectorHash
-  );
-  const utxos = await lucid.utxosAt(address);
-  if (utxos.length === 0) {
-    throw new Error('No collector UTxOs found');
-  }
-  return utxos[0];
-}
+import { findStabilityPool, findIAsset, findE2s2sSnapshotOrefs } from '../utils/v3-finders.js';
 
 export function registerSpRequestTools(server: McpServer): void {
   server.tool(
@@ -93,29 +24,27 @@ export function registerSpRequestTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
+            const currentSlot = lucid.currentSlot();
 
             const [accountUtxo] = await lucid.utxosByOutRef([
               { txHash: accountTxHash, outputIndex: accountOutputIndex },
             ]);
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
-            const [stabilityPoolUtxo, govUtxo, iAssetUtxo, collectorUtxo] = await Promise.all([
-              findStabilityPoolUtxo(asset, params, lucid),
-              findGovUtxo(params, lucid),
-              findIAssetUtxo(asset, params, lucid),
-              findCollectorUtxo(params, lucid),
+            const [stabilityPool, iassetOut, e2s2sSnapshotOrefs] = await Promise.all([
+              findStabilityPool(lucid, params, asset),
+              findIAsset(lucid, params, asset),
+              findE2s2sSnapshotOrefs(lucid, params, asset),
             ]);
 
             return processSpRequest(
-              asset,
-              stabilityPoolUtxo,
+              stabilityPool.utxo,
               accountUtxo,
-              govUtxo,
-              iAssetUtxo,
-              undefined,
+              iassetOut.utxo,
+              e2s2sSnapshotOrefs,
               params,
               lucid,
-              collectorUtxo
+              currentSlot
             );
           },
           {

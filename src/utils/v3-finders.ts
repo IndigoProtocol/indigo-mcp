@@ -1,12 +1,24 @@
 import type { LucidEvolution, Network, OutRef, UTxO } from '@lucid-evolution/lucid';
 import { fromText, toHex } from '@lucid-evolution/lucid';
-import type { SystemParams, IAssetOutput, CollateralAssetOutput } from '@indigo-labs/indigo-sdk';
+import type {
+  SystemParams,
+  IAssetOutput,
+  CollateralAssetOutput,
+  StabilityPoolContent,
+  GovDatum,
+  RobDatum,
+} from '@indigo-labs/indigo-sdk';
 import {
   fromSystemParamsAsset,
   createScriptAddress,
   getInlineDatumOrThrow,
   parseIAssetDatumOrThrow,
   parseCollateralAssetDatumOrThrow,
+  parseStabilityPoolDatumOrThrow,
+  parseGovDatumOrThrow,
+  parseRobDatumOrThrow,
+  parseSnapshotEpochToScaleToSumDatumOrThrow,
+  mkStabilityPoolAddr,
 } from '@indigo-labs/indigo-sdk';
 import type { AssetClass } from '@3rd-eye-labs/cardano-offchain-common';
 import {
@@ -173,4 +185,97 @@ export async function findTreasuryOref(
     (utxo) => Object.keys(utxo.assets).length === 1 && utxo.assets.lovelace !== undefined
   );
   return adaOnly ? toOutRef(adaOnly) : undefined;
+}
+
+/** Find the stability pool state UTxO for a given iAsset. */
+export async function findStabilityPool(
+  lucid: LucidEvolution,
+  params: SystemParams,
+  assetName: string
+): Promise<{ utxo: UTxO; datum: StabilityPoolContent }> {
+  const spToken = fromSystemParamsAsset(params.stabilityPoolParams.stabilityPoolToken);
+  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.stabilityPoolHash);
+  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(spToken));
+  const wantHex = fromText(assetName);
+  for (const utxo of utxos) {
+    try {
+      const datum = parseStabilityPoolDatumOrThrow(getInlineDatumOrThrow(utxo));
+      if (toHex(datum.iasset) === wantHex) {
+        return { utxo, datum };
+      }
+    } catch {
+      // Skip UTxOs that are not stability pool state datums.
+    }
+  }
+  throw new Error(`Stability pool UTxO for ${assetName} not found`);
+}
+
+/** Find the governance state UTxO (holds the gov NFT). */
+export async function findGov(
+  lucid: LucidEvolution,
+  params: SystemParams
+): Promise<{ utxo: UTxO; datum: GovDatum }> {
+  const govNft = fromSystemParamsAsset(params.govParams.govNFT);
+  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.govHash);
+  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(govNft));
+  for (const utxo of utxos) {
+    try {
+      const datum = parseGovDatumOrThrow(getInlineDatumOrThrow(utxo));
+      return { utxo, datum };
+    } catch {
+      // Skip non-gov datums.
+    }
+  }
+  throw new Error('Governance UTxO not found');
+}
+
+/** Find all ROB position UTxOs for a given iAsset, paired with their parsed datums. */
+export async function findAllRobs(
+  lucid: LucidEvolution,
+  params: SystemParams,
+  assetName: string
+): Promise<[UTxO, RobDatum][]> {
+  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.robHash);
+  const utxos = await lucid.utxosAt(address);
+  const wantHex = fromText(assetName);
+  const result: [UTxO, RobDatum][] = [];
+  for (const utxo of utxos) {
+    try {
+      const datum = parseRobDatumOrThrow(getInlineDatumOrThrow(utxo));
+      if (toHex(datum.iasset) === wantHex) {
+        result.push([utxo, datum]);
+      }
+    } catch {
+      // Skip non-ROB datums.
+    }
+  }
+  return result;
+}
+
+/** Find the epoch-to-scale-to-sum snapshot OutRefs for a given iAsset's stability pool. */
+export async function findE2s2sSnapshotOrefs(
+  lucid: LucidEvolution,
+  params: SystemParams,
+  assetName: string
+): Promise<OutRef[]> {
+  const snapshotToken = fromSystemParamsAsset(
+    params.stabilityPoolParams.snapshotEpochToScaleToSumToken
+  );
+  const utxos = await lucid.utxosAtWithUnit(
+    mkStabilityPoolAddr(lucid, params),
+    assetClassToUnit(snapshotToken)
+  );
+  const wantHex = fromText(assetName);
+  const orefs: OutRef[] = [];
+  for (const utxo of utxos) {
+    try {
+      const datum = parseSnapshotEpochToScaleToSumDatumOrThrow(getInlineDatumOrThrow(utxo));
+      if (toHex(datum.iasset) === wantHex) {
+        orefs.push(toOutRef(utxo));
+      }
+    } catch {
+      // Skip non-snapshot datums.
+    }
+  }
+  return orefs;
 }

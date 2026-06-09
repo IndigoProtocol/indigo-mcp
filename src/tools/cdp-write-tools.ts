@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { openCdp, depositCdp, withdrawCdp, closeCdp } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
-import { getSystemParamsV3 } from '../utils/sdk-config.js';
+import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
 import {
   findIAsset,
@@ -34,7 +34,7 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParamsV3();
+            const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
 
             const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref] = await Promise.all([
@@ -103,7 +103,7 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParamsV3();
+            const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
@@ -169,7 +169,7 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParamsV3();
+            const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
@@ -239,7 +239,7 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParamsV3();
+            const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 

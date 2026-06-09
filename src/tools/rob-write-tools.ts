@@ -1,45 +1,53 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { fromText } from '@lucid-evolution/lucid';
-import { openLrp, cancelLrp, adjustLrp, claimLrp, redeemLrp } from '@indigoprotocol/indigo-sdk';
+import { openRob, cancelRob, adjustRob, claimRob, redeemRob } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
+import {
+  ADA_COLLATERAL,
+  findIAsset,
+  findCollateralAsset,
+  findPriceOracleOref,
+  toOutRef,
+} from '../utils/v3-finders.js';
 
-/**
- * Parse a maxPrice string into the OnChainDecimal format expected by the SDK.
- * The SDK's OnChainDecimal is { getOnChainInt: bigint }.
- */
-function parseMaxPrice(maxPriceStr: string): { getOnChainInt: bigint } {
-  return { getOnChainInt: BigInt(maxPriceStr) };
-}
+const PYTH_UNSUPPORTED =
+  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
+  'Pyth-priced operations are not yet supported by this server.';
 
 export function registerRobWriteTools(server: McpServer): void {
   server.tool(
     'open_rob',
-    'Open a new ROB (Redemption Order Book) position with ADA and a max price limit. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'Open a new ROB (Redemption Order Book) buy order: deposit ADA to buy an iAsset up to a max price. The max price is a rational number (numerator/denominator). Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam,
       lovelacesAmount: z.string().describe('ADA amount in lovelace to deposit into the ROB'),
-      maxPrice: z
-        .string()
-        .describe('Max price as an on-chain integer string (the getOnChainInt value)'),
+      maxPriceNumerator: z.string().describe('Max price numerator (integer string)'),
+      maxPriceDenominator: z.string().describe('Max price denominator (integer string)'),
     },
-    async ({ address, asset, lovelacesAmount, maxPrice }) => {
+    async ({ address, asset, lovelacesAmount, maxPriceNumerator, maxPriceDenominator }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const assetTokenName = fromText(asset);
-            const maxPriceDecimal = parseMaxPrice(maxPrice);
-            return openLrp(assetTokenName, BigInt(lovelacesAmount), maxPriceDecimal, lucid, params);
+            const orderType = {
+              BuyIAssetOrder: {
+                collateralAsset: ADA_COLLATERAL,
+                maxPrice: {
+                  numerator: BigInt(maxPriceNumerator),
+                  denominator: BigInt(maxPriceDenominator),
+                },
+              },
+            };
+            return openRob(asset, BigInt(lovelacesAmount), orderType, lucid, params);
           },
           {
             type: 'open_rob',
-            description: `Open ${asset} ROB with ${lovelacesAmount} lovelace`,
-            inputs: { address, asset, lovelacesAmount, maxPrice },
+            description: `Open ${asset} ROB buy order with ${lovelacesAmount} lovelace`,
+            inputs: { address, asset, lovelacesAmount, maxPriceNumerator, maxPriceDenominator },
           }
         );
         return {
@@ -74,7 +82,7 @@ export function registerRobWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
-            return cancelLrp(robOutRef, params, lucid);
+            return cancelRob(robOutRef, params, lucid);
           },
           {
             type: 'cancel_rob',
@@ -101,7 +109,7 @@ export function registerRobWriteTools(server: McpServer): void {
 
   server.tool(
     'adjust_rob',
-    'Adjust ADA amount in an ROB position (positive to increase, negative to decrease). Optionally update the max price. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'Adjust ADA amount in an ROB buy order (positive to increase, negative to decrease). Optionally update the max price (numerator/denominator). Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
       robTxHash: z.string().describe('Transaction hash of the ROB UTxO'),
@@ -109,25 +117,43 @@ export function registerRobWriteTools(server: McpServer): void {
       lovelacesAdjustAmount: z
         .string()
         .describe('Lovelace adjustment amount (positive to add, negative to remove)'),
-      newMaxPrice: z
+      newMaxPriceNumerator: z
         .string()
         .optional()
-        .describe('Optional new max price as an on-chain integer string'),
+        .describe('Optional new max price numerator (integer string)'),
+      newMaxPriceDenominator: z
+        .string()
+        .optional()
+        .describe('Optional new max price denominator (integer string)'),
     },
-    async ({ address, robTxHash, robOutputIndex, lovelacesAdjustAmount, newMaxPrice }) => {
+    async ({
+      address,
+      robTxHash,
+      robOutputIndex,
+      lovelacesAdjustAmount,
+      newMaxPriceNumerator,
+      newMaxPriceDenominator,
+    }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
-            const newMaxPriceDecimal =
-              newMaxPrice !== undefined ? parseMaxPrice(newMaxPrice) : undefined;
-            return adjustLrp(
+            const newLimitPrice =
+              newMaxPriceNumerator !== undefined && newMaxPriceDenominator !== undefined
+                ? {
+                    BuyOrder: {
+                      numerator: BigInt(newMaxPriceNumerator),
+                      denominator: BigInt(newMaxPriceDenominator),
+                    },
+                  }
+                : undefined;
+            return adjustRob(
               lucid,
               robOutRef,
               BigInt(lovelacesAdjustAmount),
-              newMaxPriceDecimal,
+              newLimitPrice,
               params
             );
           },
@@ -139,7 +165,8 @@ export function registerRobWriteTools(server: McpServer): void {
               robTxHash,
               robOutputIndex: String(robOutputIndex),
               lovelacesAdjustAmount,
-              ...(newMaxPrice !== undefined ? { newMaxPrice } : {}),
+              ...(newMaxPriceNumerator !== undefined ? { newMaxPriceNumerator } : {}),
+              ...(newMaxPriceDenominator !== undefined ? { newMaxPriceDenominator } : {}),
             },
           }
         );
@@ -175,7 +202,7 @@ export function registerRobWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const robOutRef = { txHash: robTxHash, outputIndex: robOutputIndex };
-            return claimLrp(lucid, robOutRef, params);
+            return claimRob(lucid, robOutRef, params);
           },
           {
             type: 'claim_rob',
@@ -202,62 +229,59 @@ export function registerRobWriteTools(server: McpServer): void {
 
   server.tool(
     'redeem_rob',
-    'Redeem iAssets against one or more ROB positions. Returns an unsigned transaction (CBOR hex) for client-side signing.',
+    'Redeem iAssets against one or more ROB positions for a given iAsset. Returns an unsigned transaction (CBOR hex) for client-side signing.',
     {
       address: z.string().describe('User Cardano bech32 address'),
+      asset: AssetParam.describe('iAsset being redeemed against the ROB positions'),
       redemptionRobs: z
         .array(
           z.object({
             txHash: z.string().describe('Transaction hash of the ROB UTxO'),
             outputIndex: z.number().describe('Output index of the ROB UTxO'),
-            iAssetAmount: z.string().describe('Amount of iAssets to redeem against this ROB'),
+            amount: z
+              .string()
+              .describe(
+                'Payout amount for this redemption (iAssets for buy orders, collateral for sell orders)'
+              ),
           })
         )
         .describe('Array of ROB positions and amounts to redeem against'),
-      priceOracleTxHash: z.string().describe('Transaction hash of the price oracle UTxO'),
-      priceOracleOutputIndex: z.number().describe('Output index of the price oracle UTxO'),
-      iassetTxHash: z.string().describe('Transaction hash of the iAsset UTxO'),
-      iassetOutputIndex: z.number().describe('Output index of the iAsset UTxO'),
     },
-    async ({
-      address,
-      redemptionRobs,
-      priceOracleTxHash,
-      priceOracleOutputIndex,
-      iassetTxHash,
-      iassetOutputIndex,
-    }) => {
+    async ({ address, asset, redemptionRobs }) => {
       try {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
             const params = await getSystemParams();
+            const currentSlot = lucid.currentSlot();
+
+            const [iassetOut, collateralOut] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+            ]);
+            const priceOracleOref = await findPriceOracleOref(lucid, collateralOut);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+
             const redemptionRobsData: [{ txHash: string; outputIndex: number }, bigint][] =
               redemptionRobs.map((rob) => [
                 { txHash: rob.txHash, outputIndex: rob.outputIndex },
-                BigInt(rob.iAssetAmount),
+                BigInt(rob.amount),
               ]);
-            const priceOracleOutRef = {
-              txHash: priceOracleTxHash,
-              outputIndex: priceOracleOutputIndex,
-            };
-            const iassetOutRef = {
-              txHash: iassetTxHash,
-              outputIndex: iassetOutputIndex,
-            };
-            return redeemLrp(redemptionRobsData, priceOracleOutRef, iassetOutRef, lucid, params);
+
+            return redeemRob(
+              redemptionRobsData,
+              priceOracleOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              lucid,
+              params,
+              currentSlot
+            );
           },
           {
             type: 'redeem_rob',
-            description: `Redeem iAssets against ${redemptionRobs.length} ROB position(s)`,
-            inputs: {
-              address,
-              redemptionRobs: JSON.stringify(redemptionRobs),
-              priceOracleTxHash,
-              priceOracleOutputIndex: String(priceOracleOutputIndex),
-              iassetTxHash,
-              iassetOutputIndex: String(iassetOutputIndex),
-            },
+            description: `Redeem ${asset} against ${redemptionRobs.length} ROB position(s)`,
+            inputs: { address, asset, redemptionRobs: JSON.stringify(redemptionRobs) },
           }
         );
         return {
