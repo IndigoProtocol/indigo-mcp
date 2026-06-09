@@ -1,141 +1,32 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { LucidEvolution, Network, UTxO } from '@lucid-evolution/lucid';
-import { fromText } from '@lucid-evolution/lucid';
-import type { SystemParams, IAssetContent } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
-import {
-  openCdp,
-  depositCdp,
-  withdrawCdp,
-  closeCdp,
-  fromSystemParamsAsset,
-  assetClassToUnit,
-  createScriptAddress,
-  parseIAssetDatumOrThrow,
-  getInlineDatumOrThrow,
-} from '@indigoprotocol/indigo-sdk';
+import { openCdp, depositCdp, withdrawCdp, closeCdp } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
-import { getSystemParams } from '../utils/sdk-config.js';
+import { getSystemParamsV3 } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
+import {
+  findIAsset,
+  findCollateralAsset,
+  findCdpCreatorOref,
+  findInterestOracleOref,
+  findPriceOracleOref,
+  findInterestCollectorOref,
+  findTreasuryOref,
+  toOutRef,
+} from '../utils/v3-finders.js';
 
-function getNetwork(lucid: LucidEvolution): Network {
-  const network = lucid.config().network;
-  if (!network) throw new Error('Lucid network not configured');
-  return network;
-}
-
-/**
- * Resolve the iAsset state UTxO for a given asset name (e.g. "iUSD").
- * iAsset UTxOs sit at the CDP validator address, hold the iAsset auth token,
- * and have an IAsset datum containing the hex-encoded asset name.
- */
-async function findIAssetUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution
-): Promise<{ utxo: UTxO; datum: IAssetContent }> {
-  const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpHash);
-  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
-  const assetHex = fromText(asset);
-  for (const utxo of utxos) {
-    try {
-      const datum = parseIAssetDatumOrThrow(getInlineDatumOrThrow(utxo));
-      if (datum.assetName === assetHex) {
-        return { utxo, datum };
-      }
-    } catch {
-      // Skip UTxOs with unparseable datums (e.g. CDP datums at same address)
-    }
-  }
-  throw new Error(`iAsset UTxO for ${asset} not found`);
-}
-
-/**
- * Find a CDP creator UTxO (holds the cdpCreatorNft at the cdpCreator validator address).
- * Multiple CDP creator UTxOs exist on-chain; any one can be used as a factory for opening CDPs.
- */
-async function findCdpCreatorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const nftAc = fromSystemParamsAsset(params.cdpCreatorParams.cdpCreatorNft);
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpCreatorHash);
-  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
-  if (utxos.length === 0) {
-    throw new Error('No CDP creator UTxO found');
-  }
-  return utxos[0];
-}
-
-/**
- * Find the governance UTxO (holds govNFT at the gov validator address).
- */
-async function findGovUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const nftAc = fromSystemParamsAsset(params.govParams.govNFT);
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.govHash);
-  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
-  if (utxos.length !== 1) {
-    throw new Error(`Expected a single governance UTxO, found ${utxos.length}`);
-  }
-  return utxos[0];
-}
-
-/**
- * Find the treasury UTxO at the treasury validator address.
- */
-async function findTreasuryUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const utxos = await lucid.utxosAt({ type: 'Script', hash: params.validatorHashes.treasuryHash });
-  if (utxos.length === 0) {
-    throw new Error('No treasury UTxOs found');
-  }
-  // Return the first treasury UTxO
-  return utxos[0];
-}
-
-/**
- * Find a collector UTxO at the collector validator address.
- */
-async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.collectorHash);
-  const utxos = await lucid.utxosAt(address);
-  if (utxos.length === 0) {
-    throw new Error('No collector UTxOs found');
-  }
-  return utxos[0];
-}
-
-/**
- * Find the price oracle UTxO for a given iAsset.
- * The oracle NFT is referenced in the iAsset datum's price field.
- */
-async function findPriceOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const priceInfo = iAssetDatum.price as
-    | { Delisted: unknown }
-    | { Oracle: { content: { oracleNft: { currencySymbol: string; tokenName: string } } } };
-  if ('Delisted' in priceInfo) {
-    throw new Error('iAsset is delisted, cannot perform CDP operations');
-  }
-  const oracleNft = priceInfo.Oracle.content.oracleNft;
-  const oracleUnit = oracleNft.currencySymbol + oracleNft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
-
-/**
- * Find the interest oracle UTxO for a given iAsset.
- * The interest oracle NFT is referenced in the iAsset datum's interestOracleNft field.
- */
-async function findInterestOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const nft = iAssetDatum.interestOracleNft;
-  const oracleUnit = nft.currencySymbol + nft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
+const PYTH_UNSUPPORTED =
+  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
+  'Pyth-priced operations are not yet supported by this server.';
 
 export function registerCdpWriteTools(server: McpServer): void {
   server.tool(
     'open_cdp',
-    'Open a new CDP position — builds an unsigned transaction (CBOR hex) for client-side signing',
+    'Open a new CDP position with ADA collateral — builds an unsigned transaction (CBOR hex) for client-side signing',
     {
       address: z.string().describe('User Cardano bech32 address (addr1... or addr_test1...)'),
       asset: AssetParam,
-      collateralAmount: z.string().describe('Collateral amount in lovelace'),
+      collateralAmount: z.string().describe('ADA collateral amount in lovelace'),
       mintAmount: z.string().describe('iAsset amount to mint in smallest unit'),
     },
     async ({ address, asset, collateralAmount, mintAmount }) => {
@@ -143,29 +34,32 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParams();
+            const params = await getSystemParamsV3();
             const currentSlot = lucid.currentSlot();
 
-            const [iAssetResult, cdpCreatorUtxo, collectorUtxo] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCdpCreatorUtxo(params, lucid),
-              findCollectorUtxo(params, lucid),
+            const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findCdpCreatorOref(lucid, params),
+              findTreasuryOref(lucid, params),
             ]);
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
+            const [priceOracleOref, interestOracleOref] = await Promise.all([
+              findPriceOracleOref(lucid, collateralOut),
+              findInterestOracleOref(lucid, collateralOut),
             ]);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
 
             return openCdp(
               BigInt(collateralAmount),
               BigInt(mintAmount),
               params,
-              cdpCreatorUtxo,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
+              cdpCreatorOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              priceOracleOref,
+              interestOracleOref,
+              treasuryOref,
               lucid,
               currentSlot
             );
@@ -196,7 +90,7 @@ export function registerCdpWriteTools(server: McpServer): void {
 
   server.tool(
     'deposit_cdp',
-    'Deposit additional collateral into a CDP — builds an unsigned transaction (CBOR hex) for client-side signing',
+    'Deposit additional ADA collateral into a CDP — builds an unsigned transaction (CBOR hex) for client-side signing',
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam,
@@ -209,31 +103,28 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParams();
+            const params = await getSystemParamsV3();
             const currentSlot = lucid.currentSlot();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iAssetResult, collectorUtxo, govUtxo, treasuryUtxo] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCollectorUtxo(params, lucid),
-              findGovUtxo(params, lucid),
-              findTreasuryUtxo(params, lucid),
-            ]);
+            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
+              await Promise.all([
+                findIAsset(lucid, params, asset),
+                findCollateralAsset(lucid, params, asset),
+                findInterestCollectorOref(lucid, params),
+                findTreasuryOref(lucid, params),
+              ]);
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
-            ]);
+            const interestOracleOref = await findInterestOracleOref(lucid, collateralOut);
 
             return depositCdp(
               BigInt(amount),
-              cdpOutRef,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
-              govUtxo,
-              treasuryUtxo,
+              cdpOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              interestOracleOref,
+              treasuryOref,
+              interestCollectorOref,
               params,
               lucid,
               currentSlot
@@ -265,7 +156,7 @@ export function registerCdpWriteTools(server: McpServer): void {
 
   server.tool(
     'withdraw_cdp',
-    'Withdraw collateral from a CDP — builds an unsigned transaction (CBOR hex) for client-side signing',
+    'Withdraw ADA collateral from a CDP — builds an unsigned transaction (CBOR hex) for client-side signing',
     {
       address: z.string().describe('User Cardano bech32 address'),
       asset: AssetParam,
@@ -278,31 +169,33 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParams();
+            const params = await getSystemParamsV3();
             const currentSlot = lucid.currentSlot();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iAssetResult, collectorUtxo, govUtxo, treasuryUtxo] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCollectorUtxo(params, lucid),
-              findGovUtxo(params, lucid),
-              findTreasuryUtxo(params, lucid),
-            ]);
+            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
+              await Promise.all([
+                findIAsset(lucid, params, asset),
+                findCollateralAsset(lucid, params, asset),
+                findInterestCollectorOref(lucid, params),
+                findTreasuryOref(lucid, params),
+              ]);
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
+            const [priceOracleOref, interestOracleOref] = await Promise.all([
+              findPriceOracleOref(lucid, collateralOut),
+              findInterestOracleOref(lucid, collateralOut),
             ]);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
 
             return withdrawCdp(
               BigInt(amount),
-              cdpOutRef,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
-              govUtxo,
-              treasuryUtxo,
+              cdpOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              priceOracleOref,
+              interestOracleOref,
+              treasuryOref,
+              interestCollectorOref,
               params,
               lucid,
               currentSlot
@@ -346,30 +239,22 @@ export function registerCdpWriteTools(server: McpServer): void {
         const result = await buildUnsignedTx(
           address,
           async (lucid) => {
-            const params = await getSystemParams();
+            const params = await getSystemParamsV3();
             const currentSlot = lucid.currentSlot();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iAssetResult, collectorUtxo, govUtxo, treasuryUtxo] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCollectorUtxo(params, lucid),
-              findGovUtxo(params, lucid),
-              findTreasuryUtxo(params, lucid),
+            const [collateralOut, interestCollectorOref] = await Promise.all([
+              findCollateralAsset(lucid, params, asset),
+              findInterestCollectorOref(lucid, params),
             ]);
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
-            ]);
+            const interestOracleOref = await findInterestOracleOref(lucid, collateralOut);
 
             return closeCdp(
-              cdpOutRef,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
-              govUtxo,
-              treasuryUtxo,
+              cdpOref,
+              toOutRef(collateralOut.utxo),
+              interestOracleOref,
+              interestCollectorOref,
               params,
               lucid,
               currentSlot

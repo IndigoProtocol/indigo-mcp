@@ -50,6 +50,8 @@
     "access": "public"
   },
   "devDependencies": {
+    "@3rd-eye-labs/cardano-offchain-common": "^1.2.0",
+    "@indigo-labs/indigo-sdk": "^0.3.28",
     "@indigoprotocol/indigo-sdk": "^1.0.6",
     "@lucid-evolution/lucid": "^0.4.29",
     "@modelcontextprotocol/sdk": "^1.18.0",
