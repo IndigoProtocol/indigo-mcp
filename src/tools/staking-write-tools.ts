@@ -69,7 +69,13 @@ export function registerStakingWriteTools(server: McpServer): void {
               outputIndex: positionOutputIndex,
             };
             const currentSlot = lucid.currentSlot();
-            return adjustStakingPosition(positionOutRef, BigInt(amount), params, lucid, currentSlot);
+            return adjustStakingPosition(
+              positionOutRef,
+              BigInt(amount),
+              params,
+              lucid,
+              currentSlot
+            );
           },
           {
             type: 'adjust_staking_position',

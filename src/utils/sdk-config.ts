@@ -1,8 +1,7 @@
 import type { SystemParams } from '@indigo-labs/indigo-sdk';
 import { loadSystemParamsFromUrl } from '@indigo-labs/indigo-sdk';
 
-const SYSTEM_PARAMS_URL =
-  'https://config.indigoprotocol.io/mainnet/mainnet-system-params-v3.json';
+const SYSTEM_PARAMS_URL = 'https://config.indigoprotocol.io/mainnet/mainnet-system-params-v3.json';
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 

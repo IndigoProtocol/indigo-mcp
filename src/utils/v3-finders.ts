@@ -95,7 +95,10 @@ export async function findCollateralAsset(
   for (const utxo of utxos) {
     try {
       const datum = parseCollateralAssetDatumOrThrow(getInlineDatumOrThrow(utxo));
-      if (isSameAssetClass(datum.collateralAsset, collateralAsset) && toHex(datum.iasset) === wantHex) {
+      if (
+        isSameAssetClass(datum.collateralAsset, collateralAsset) &&
+        toHex(datum.iasset) === wantHex
+      ) {
         return { utxo, datum };
       }
     } catch {
