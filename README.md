@@ -47,7 +47,7 @@ npx @indigoprotocol/cardano-skills
 ║   ██║ ╚═╝ ██║╚██████╗██║                                      ║
 ║   ╚═╝     ╚═╝ ╚═════╝╚═╝                                      ║
 ║                                                               ║
-║   63 tools • 13 skills for Cardano DeFi                       ║
+║   75 tools • 13 skills for Cardano DeFi                       ║
 ║                                                               ║
 ╚═══════════════════════════════════════════════════════════════╝
 ```
@@ -56,7 +56,7 @@ The setup commands auto-configure Claude Desktop, Claude Code, Cursor, or Windsu
 
 ## Features
 
-- Real-time iAsset prices (iUSD, iBTC, iETH, iSOL)
+- Real-time iAsset prices (iUSD, iBTC, iETH, iSOL, iEUR, iJPY)
 - ADA and INDY token price feeds
 - CDP/loan browsing with pagination and filtering
 - Owner lookup by payment key hash or bech32 address
@@ -307,8 +307,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool              | Description                                          | Parameters                         |
 | ----------------- | ---------------------------------------------------- | ---------------------------------- |
 | `get_assets`      | Get all Indigo iAssets with prices and interest data | None                               |
-| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, or iSOL |
-| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, or iSOL |
+| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
+| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
 | `get_ada_price`   | Get the current ADA price in USD                     | None                               |
 | `get_indy_price`  | Get the current INDY token price in ADA and USD      | None                               |
 
@@ -325,7 +325,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool           | Description                                        | Parameters                                                                                                                      |
 | -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
+| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
 | `deposit_cdp`  | Deposit additional collateral into a CDP           | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `withdraw_cdp` | Withdraw collateral from a CDP                     | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `close_cdp`    | Close a CDP and reclaim collateral                 | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                       |
@@ -334,8 +334,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool       | Description                                                   | Parameters                                                                                                                                                                      |
 | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
-| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, or iSOL; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
 
 ### CDP Liquidation & Redemption Tools
 
@@ -357,7 +357,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool                          | Description                                                         | Parameters                                                |
 | ----------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
 | `get_stability_pools`         | Get the latest stability pool state for each iAsset                 | None                                                      |
-| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, or iSOL                       |
+| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                       |
 | `get_sp_account_by_owner`     | Get stability pool accounts for specific owners                     | `owners`: array of payment key hashes or bech32 addresses |
 
 ### Staking Tools
@@ -412,19 +412,19 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool                    | Description                                   | Parameters                                                      |
 | ----------------------- | --------------------------------------------- | --------------------------------------------------------------- |
-| `get_order_book`        | Get open limited redemption positions         | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
-| `get_redemption_orders` | Get redemption orders with optional filters   | `timestamp?`: Unix ms; `in_range?`: filter by price range       |
-| `get_redemption_queue`  | Get aggregated redemption queue for an iAsset | `asset`: iUSD, iBTC, iETH, or iSOL                              |
+| `get_order_book`        | Get open ROB (redemption order book) positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
+| `get_redemption_orders` | Get executed redemption orders                | `asset?`: iAsset filter; `limit?`: max records (default 100)    |
+| `get_redemption_queue`  | Get open ROB order-book entries for an iAsset | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                  |
 
 ### ROB Write Tools
 
 | Tool         | Description                                               | Parameters                                                                                                                                                                      |
 | ------------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `open_rob`   | Open a new ROB position with ADA and a max price limit    | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPrice`: on-chain integer string                                                         |
+| `open_rob`   | Open a new ROB position with ADA and a max price limit    | `address`: bech32 address; `asset`: iAsset; `lovelacesAmount`: lovelace to deposit; `maxPriceNumerator` + `maxPriceDenominator`: rational max price                              |
 | `cancel_rob` | Cancel an existing ROB position                           | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index                                                                                        |
-| `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPrice?`: optional new max price           |
+| `adjust_rob` | Adjust ADA in a ROB (positive to add, negative to remove) | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index; `lovelacesAdjustAmount`: adjustment; `newMaxPriceNumerator?` + `newMaxPriceDenominator?`: optional new rational max price |
 | `claim_rob`  | Claim received iAssets from an ROB position               | `address`: bech32 address; `robTxHash`: ROB UTxO tx hash; `robOutputIndex`: output index                                                                                        |
-| `redeem_rob` | Redeem iAssets against one or more ROB positions          | `address`: bech32 address; `redemptionRobs`: array of `{txHash, outputIndex, iAssetAmount}`; `priceOracleTxHash`; `priceOracleOutputIndex`; `iassetTxHash`; `iassetOutputIndex` |
+| `redeem_rob` | Redeem iAssets against one or more ROB positions          | `address`: bech32 address; `asset`: iAsset; `redemptionRobs`: array of `{txHash, outputIndex, amount}`                                                                          |
 
 ### DEX Proxy Tools
 
