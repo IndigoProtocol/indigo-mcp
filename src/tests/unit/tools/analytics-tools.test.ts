@@ -32,149 +32,83 @@ describe('analytics tools', () => {
   });
 
   describe('get_tvl', () => {
-    it('should return TVL data', async () => {
-      const mockData = [{ tvl: 1000000, date: '2024-01-01' }];
-      mockGet.mockResolvedValue({ data: mockData });
-
+    it('explains TVL is not in the v3 indexer', async () => {
       const result = await tools.get('get_tvl')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/analytics/tvl');
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Network error'));
-
-      const result = await tools.get('get_tvl')!({});
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Network error');
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('not available from the v3 indexer');
     });
   });
 
   describe('get_apr_rewards', () => {
-    it('should return APR rewards', async () => {
-      const mockData = [{ key: 'sp_iUSD_indy', value: 5.2 }];
-      mockGet.mockResolvedValue({ data: mockData });
-
+    it('directs callers to get_apr_by_key', async () => {
       const result = await tools.get('get_apr_rewards')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/apr/');
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Timeout'));
-
-      const result = await tools.get('get_apr_rewards')!({});
-
-      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('get_apr_by_key');
     });
   });
 
   describe('get_apr_by_key', () => {
-    it('should post with key', async () => {
-      mockPost.mockResolvedValue({ data: { key: 'sp_iUSD_indy', apr: 5.2 } });
-
+    it('posts to /apr with the key', async () => {
+      mockPost.mockResolvedValue({ data: { key: 'sp_iUSD_indy', value: 9.27 } });
       const result = await tools.get('get_apr_by_key')!({ key: 'sp_iUSD_indy' });
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(mockPost).toHaveBeenCalledWith('/apr/', { key: 'sp_iUSD_indy' });
+      expect(mockPost).toHaveBeenCalledWith('/apr', { key: 'sp_iUSD_indy' });
       expect(parsed.key).toBe('sp_iUSD_indy');
     });
 
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockPost.mockRejectedValue(new Error('Not found'));
-
       const result = await tools.get('get_apr_by_key')!({ key: 'invalid' });
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Not found');
     });
   });
 
   describe('get_dex_yields', () => {
-    it('should return DEX yields', async () => {
-      const mockData = [{ pair: 'iUSD/ADA', yield: 10 }];
+    it('reads /yields', async () => {
+      const mockData = [{ dex: 'MinswapV2', base_apr: 24.6 }];
       mockGet.mockResolvedValue({ data: mockData });
-
       const result = await tools.get('get_dex_yields')!({});
       const parsed = JSON.parse(result.content[0].text);
-
       expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/dex/yields');
+      expect(mockGet).toHaveBeenCalledWith('/yields');
     });
 
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('Server error'));
-
       const result = await tools.get('get_dex_yields')!({});
-
       expect(result.isError).toBe(true);
     });
   });
 
   describe('get_protocol_stats', () => {
-    it('should aggregate data from multiple endpoints', async () => {
+    it('aggregates v3 endpoints', async () => {
       mockGet.mockImplementation((url: string) => {
         switch (url) {
-          case '/assets/':
+          case '/assets':
+            return Promise.resolve({ data: [{ asset: 'iUSD' }, { asset: 'iBTC' }] });
+          case '/asset-prices':
             return Promise.resolve({
-              data: [
-                { name: 'iUSD', price: { price: 1.0 } },
-                { name: 'iBTC', price: { price: 60000 } },
-              ],
+              data: [{ asset: 'iUSD', collateral_asset: '', price: '6.29' }],
             });
-          case '/analytics/ada':
-            return Promise.resolve({ data: 0.45 });
-          case '/analytics/tvl':
-            return Promise.resolve({ data: [{ tvl: 5000000 }, { tvl: 6000000 }] });
-          case '/staking/':
-            return Promise.resolve({ data: { totalStake: 10000000 } });
+          case '/indy-price':
+            return Promise.resolve({ data: { ada_price: '0.64', usd_price: '0.1024' } });
+          case '/staking-manager':
+            return Promise.resolve({ data: { total_stake: 10000000 } });
           default:
-            return Promise.reject(new Error('Unknown endpoint'));
+            return Promise.reject(new Error('Unknown endpoint ' + url));
         }
       });
 
       const result = await tools.get('get_protocol_stats')!({});
       const parsed = JSON.parse(result.content[0].text);
-
       expect(parsed.assetCount).toBe(2);
-      expect(parsed.assets).toHaveLength(2);
-      expect(parsed.adaPrice).toBe(0.45);
-      expect(parsed.tvl).toBe(6000000);
+      expect(parsed.adaPriceUsd).toBeCloseTo(0.16, 5);
       expect(parsed.totalStake).toBe(10000000);
     });
 
-    it('should handle empty TVL data', async () => {
-      mockGet.mockImplementation((url: string) => {
-        switch (url) {
-          case '/assets/':
-            return Promise.resolve({ data: [] });
-          case '/analytics/ada':
-            return Promise.resolve({ data: 0 });
-          case '/analytics/tvl':
-            return Promise.resolve({ data: [] });
-          case '/staking/':
-            return Promise.resolve({ data: { totalStake: 0 } });
-          default:
-            return Promise.reject(new Error('Unknown'));
-        }
-      });
-
-      const result = await tools.get('get_protocol_stats')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed.tvl).toBeNull();
-    });
-
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('API error'));
-
       const result = await tools.get('get_protocol_stats')!({});
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('API error');
     });

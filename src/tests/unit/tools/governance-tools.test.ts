@@ -53,23 +53,10 @@ describe('governance tools', () => {
   });
 
   describe('get_temperature_checks', () => {
-    it('should return temperature checks', async () => {
-      const mockData = [{ id: 1, title: 'Proposal A' }];
-      mockGet.mockResolvedValue({ data: mockData });
-
+    it('directs callers to get_polls (no dedicated v3 route)', async () => {
       const result = await tools.get('get_temperature_checks')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/polls/temperature-checks');
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Timeout'));
-
-      const result = await tools.get('get_temperature_checks')!({});
-
-      expect(result.isError).toBe(true);
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('get_polls');
     });
   });
 

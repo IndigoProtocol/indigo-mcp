@@ -21,131 +21,61 @@ function createTestServer() {
 describe('redemption tools', () => {
   let tools: Map<string, Function>;
   const mockGet = vi.fn();
-  const mockPost = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (getIndexerClient as any).mockReturnValue({ get: mockGet, post: mockPost });
+    (getIndexerClient as any).mockReturnValue({ get: mockGet });
     const testServer = createTestServer();
     tools = testServer.tools;
     registerRedemptionTools(testServer.server);
   });
 
   describe('get_order_book', () => {
-    it('should GET when no filters', async () => {
-      const mockData = [{ owner: 'abc', asset: 'iUSD' }];
-      mockGet.mockResolvedValue({ data: mockData });
-
+    it('explains the order book is not indexed in v3', async () => {
       const result = await tools.get('get_order_book')!({});
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/order-book/');
-    });
-
-    it('should POST when asset filter provided', async () => {
-      const mockData = [{ owner: 'abc', asset: 'iUSD' }];
-      mockPost.mockResolvedValue({ data: mockData });
-
-      const result = await tools.get('get_order_book')!({ asset: 'iUSD' });
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockPost).toHaveBeenCalledWith('/order-book/', { asset: 'iUSD', owners: undefined });
-    });
-
-    it('should POST when owners filter provided', async () => {
-      mockPost.mockResolvedValue({ data: [] });
-
-      await tools.get('get_order_book')!({ owners: ['owner1'] });
-
-      expect(mockPost).toHaveBeenCalledWith('/order-book/', {
-        asset: undefined,
-        owners: ['owner1'],
-      });
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Network error'));
-
-      const result = await tools.get('get_order_book')!({});
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Network error');
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('not exposed by the v3 indexer');
     });
   });
 
   describe('get_redemption_orders', () => {
-    it('should GET when no filters', async () => {
-      const mockData = [{ id: 1 }];
+    it('reads /redemptions and filters by asset', async () => {
+      const mockData = [
+        { id: 1, asset: 'iUSD' },
+        { id: 2, asset: 'iBTC' },
+      ];
       mockGet.mockResolvedValue({ data: mockData });
-
-      const result = await tools.get('get_redemption_orders')!({});
+      const result = await tools.get('get_redemption_orders')!({ asset: 'iUSD' });
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/rewards/redemption-orders');
+      expect(mockGet).toHaveBeenCalledWith('/redemptions');
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0].asset).toBe('iUSD');
     });
 
-    it('should POST when timestamp filter provided', async () => {
-      mockPost.mockResolvedValue({ data: [{ id: 2 }] });
-
-      await tools.get('get_redemption_orders')!({ timestamp: 1700000000 });
-
-      expect(mockPost).toHaveBeenCalledWith('/rewards/redemption-orders', {
-        timestamp: 1700000000,
-        in_range: undefined,
+    it('applies a limit', async () => {
+      mockGet.mockResolvedValue({
+        data: [
+          { id: 1, asset: 'iUSD' },
+          { id: 2, asset: 'iUSD' },
+        ],
       });
+      const result = await tools.get('get_redemption_orders')!({ limit: 1 });
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toHaveLength(1);
     });
 
-    it('should POST when in_range filter provided', async () => {
-      mockPost.mockResolvedValue({ data: [] });
-
-      await tools.get('get_redemption_orders')!({ in_range: true });
-
-      expect(mockPost).toHaveBeenCalledWith('/rewards/redemption-orders', {
-        timestamp: undefined,
-        in_range: true,
-      });
-    });
-
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('Timeout'));
-
       const result = await tools.get('get_redemption_orders')!({});
-
       expect(result.isError).toBe(true);
     });
   });
 
   describe('get_redemption_queue', () => {
-    it('should sort entries by maxPrice and aggregate', async () => {
-      const mockEntries = [
-        { owner: 'a', asset: 'iUSD', lovelaceAmount: 200, maxPrice: 1.1, claimableAmount: 0 },
-        { owner: 'b', asset: 'iUSD', lovelaceAmount: 100, maxPrice: 0.9, claimableAmount: 0 },
-        { owner: 'c', asset: 'iUSD', lovelaceAmount: 150, maxPrice: 1.0, claimableAmount: 0 },
-      ];
-      mockPost.mockResolvedValue({ data: mockEntries });
-
+    it('explains the queue is not indexed in v3', async () => {
       const result = await tools.get('get_redemption_queue')!({ asset: 'iUSD' });
-      const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed.asset).toBe('iUSD');
-      expect(parsed.totalPositions).toBe(3);
-      expect(parsed.totalLovelace).toBe(450);
-      expect(parsed.entries[0].maxPrice).toBe(0.9);
-      expect(parsed.entries[1].maxPrice).toBe(1.0);
-      expect(parsed.entries[2].maxPrice).toBe(1.1);
-      expect(mockPost).toHaveBeenCalledWith('/order-book/', { asset: 'iUSD' });
-    });
-
-    it('should return error on failure', async () => {
-      mockPost.mockRejectedValue(new Error('API error'));
-
-      const result = await tools.get('get_redemption_queue')!({ asset: 'iUSD' });
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('API error');
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('not exposed by the v3 indexer');
     });
   });
 });

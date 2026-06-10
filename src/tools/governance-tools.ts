@@ -23,25 +23,17 @@ export function registerGovernanceTools(server: McpServer): void {
     }
   });
 
-  // 2. get_temperature_checks - No params → GET /polls/temperature-checks
+  // get_temperature_checks - the dedicated /polls/temperature-checks route was
+  // removed in v3; temperature checks now come through the polls feed.
   server.tool('get_temperature_checks', 'Get temperature check polls', {}, async () => {
-    try {
-      const client = getIndexerClient();
-      const response = await client.get('/polls/temperature-checks');
-      return {
-        content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `Error fetching temperature checks: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
+    return {
+      content: [
+        {
+          type: 'text' as const,
+          text: 'The v3 indexer no longer exposes a dedicated temperature-checks route. Use get_polls and filter by poll type.',
+        },
+      ],
+    };
   });
 
   // 3. get_polls - No params → GET /polls/
