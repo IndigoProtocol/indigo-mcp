@@ -18,6 +18,20 @@ function createTestServer() {
   return { server, tools };
 }
 
+const mockAssets = [{ asset: 'iUSD' }, { asset: 'iBTC' }];
+const mockPrices = [
+  { asset: 'iUSD', collateral_asset: '', price: '1.0', expiration: 100 },
+  { asset: 'iBTC', collateral_asset: '', price: '60000', expiration: 100 },
+];
+const mockIndy = { ada_price: '0.64', usd_price: '0.1024', timestamp: 1700000000 };
+
+function routed(url: string) {
+  if (url === '/assets') return Promise.resolve({ data: mockAssets });
+  if (url === '/asset-prices') return Promise.resolve({ data: mockPrices });
+  if (url === '/indy-price') return Promise.resolve({ data: mockIndy });
+  return Promise.reject(new Error('Unknown endpoint ' + url));
+}
+
 describe('asset tools', () => {
   let tools: Map<string, Function>;
   const mockGet = vi.fn();
@@ -31,127 +45,88 @@ describe('asset tools', () => {
   });
 
   describe('get_assets', () => {
-    it('should return all assets', async () => {
-      const mockAssets = [
-        { name: 'iUSD', price: { price: 1.0 } },
-        { name: 'iBTC', price: { price: 60000 } },
-      ];
-      mockGet.mockResolvedValue({ data: mockAssets });
-
+    it('returns assets enriched with prices', async () => {
+      mockGet.mockImplementation(routed);
       const result = await tools.get('get_assets')!({});
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toEqual(mockAssets);
-      expect(result.isError).toBeUndefined();
-      expect(mockGet).toHaveBeenCalledWith('/assets/');
+      expect(parsed).toHaveLength(2);
+      expect(parsed[0].asset).toBe('iUSD');
+      expect(parsed[0].prices[0]).toMatchObject({ collateralAsset: 'ADA', price: 1 });
     });
 
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('Network error'));
-
       const result = await tools.get('get_assets')!({});
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Network error');
     });
   });
 
   describe('get_asset', () => {
-    it('should return a specific asset', async () => {
-      const mockAssets = [
-        { name: 'iUSD', price: { price: 1.0 } },
-        { name: 'iBTC', price: { price: 60000 } },
-      ];
-      mockGet.mockResolvedValue({ data: mockAssets });
-
+    it('returns a specific asset by v3 `asset` field', async () => {
+      mockGet.mockImplementation(routed);
       const result = await tools.get('get_asset')!({ asset: 'iUSD' });
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed.name).toBe('iUSD');
-      expect(result.isError).toBeUndefined();
+      expect(parsed.asset).toBe('iUSD');
     });
 
-    it('should return error when asset not found', async () => {
-      mockGet.mockResolvedValue({ data: [{ name: 'iUSD' }] });
-
+    it('errors when asset not found', async () => {
+      mockGet.mockResolvedValue({ data: [{ asset: 'iUSD' }] });
       const result = await tools.get('get_asset')!({ asset: 'iBTC' });
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('iBTC not found');
-    });
-
-    it('should return error on failure', async () => {
-      mockGet.mockRejectedValue(new Error('Timeout'));
-
-      const result = await tools.get('get_asset')!({ asset: 'iUSD' });
-
-      expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Timeout');
     });
   });
 
   describe('get_asset_price', () => {
-    it('should return asset price data', async () => {
-      const mockAssets = [{ name: 'iUSD', price: { price: 1.0, expiration: 100, slot: 50 } }];
-      mockGet.mockResolvedValue({ data: mockAssets });
-
+    it('returns prices per collateral from /asset-prices', async () => {
+      mockGet.mockImplementation(routed);
       const result = await tools.get('get_asset_price')!({ asset: 'iUSD' });
       const parsed = JSON.parse(result.content[0].text);
-
       expect(parsed.asset).toBe('iUSD');
-      expect(parsed.price).toBe(1.0);
-      expect(result.isError).toBeUndefined();
+      expect(parsed.prices[0]).toMatchObject({ collateralAsset: 'ADA', price: 1 });
     });
 
-    it('should return error when asset not found', async () => {
+    it('errors when no price found', async () => {
       mockGet.mockResolvedValue({ data: [] });
-
       const result = await tools.get('get_asset_price')!({ asset: 'iSOL' });
-
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('iSOL not found');
+      expect(result.content[0].text).toContain('No price found');
     });
   });
 
   describe('get_ada_price', () => {
-    it('should return ADA price', async () => {
-      mockGet.mockResolvedValue({ data: 0.45 });
-
+    it('derives ADA/USD from the INDY feed', async () => {
+      mockGet.mockImplementation(routed);
       const result = await tools.get('get_ada_price')!({});
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed).toBe(0.45);
-      expect(mockGet).toHaveBeenCalledWith('/analytics/ada');
+      // 0.1024 / 0.64 = 0.16
+      expect(parsed.usd).toBeCloseTo(0.16, 5);
+      expect(mockGet).toHaveBeenCalledWith('/indy-price');
     });
 
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('Service unavailable'));
-
       const result = await tools.get('get_ada_price')!({});
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Service unavailable');
     });
   });
 
   describe('get_indy_price', () => {
-    it('should parse string values to numbers', async () => {
-      mockGet.mockResolvedValue({ data: { ada: '2.5', usd: '1.12', timestamp: '1700000000' } });
-
+    it('maps the v3 indy-price shape to numbers', async () => {
+      mockGet.mockImplementation(routed);
       const result = await tools.get('get_indy_price')!({});
       const parsed = JSON.parse(result.content[0].text);
-
-      expect(parsed.ada).toBe(2.5);
-      expect(parsed.usd).toBe(1.12);
+      expect(parsed.ada).toBe(0.64);
+      expect(parsed.usd).toBe(0.1024);
       expect(parsed.timestamp).toBe(1700000000);
-      expect(mockGet).toHaveBeenCalledWith('/analytics/indy');
+      expect(mockGet).toHaveBeenCalledWith('/indy-price');
     });
 
-    it('should return error on failure', async () => {
+    it('returns error on failure', async () => {
       mockGet.mockRejectedValue(new Error('API error'));
-
       const result = await tools.get('get_indy_price')!({});
-
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('API error');
     });

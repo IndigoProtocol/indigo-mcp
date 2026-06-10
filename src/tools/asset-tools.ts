@@ -2,34 +2,61 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { getIndexerClient } from '../utils/indexer-client.js';
 import { AssetParam } from '../utils/validators.js';
 
-export function registerAssetTools(server: McpServer): void {
-  // 1. get_assets - No params → GET /assets/
-  server.tool(
-    'get_assets',
-    'Get all Indigo iAssets with prices and interest data',
-    {},
-    async () => {
-      try {
-        const client = getIndexerClient();
-        const response = await client.get('/assets/');
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Error fetching assets: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    }
-  );
+// v3 price entry from GET /asset-prices: iAsset price denominated in
+// `collateral_asset` ('' = ADA).
+interface AssetPrice {
+  asset: string;
+  collateral_asset: string;
+  price: string;
+  expiration?: number;
+  [key: string]: unknown;
+}
 
-  // 2. get_asset - { asset: AssetParam } → GET /assets/ + filter by name
+// Group price entries by iAsset name.
+function pricesByAsset(prices: AssetPrice[]): Map<string, AssetPrice[]> {
+  const map = new Map<string, AssetPrice[]>();
+  for (const p of prices) {
+    const list = map.get(p.asset) ?? [];
+    list.push(p);
+    map.set(p.asset, list);
+  }
+  return map;
+}
+
+export function registerAssetTools(server: McpServer): void {
+  server.tool('get_assets', 'Get all Indigo iAssets with their prices', {}, async () => {
+    try {
+      const client = getIndexerClient();
+      const [assetsRes, pricesRes] = await Promise.all([
+        client.get('/assets'),
+        client.get('/asset-prices'),
+      ]);
+      const assets = assetsRes.data as Array<{ asset: string; [k: string]: unknown }>;
+      const priceMap = pricesByAsset(pricesRes.data as AssetPrice[]);
+      const enriched = assets.map((a) => ({
+        ...a,
+        prices: (priceMap.get(a.asset) ?? []).map((p) => ({
+          collateralAsset: p.collateral_asset === '' ? 'ADA' : p.collateral_asset,
+          price: Number(p.price),
+          expiration: p.expiration,
+        })),
+      }));
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(enriched, null, 2) }],
+      };
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `Error fetching assets: ${error instanceof Error ? error.message : String(error)}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
+
   server.tool(
     'get_asset',
     'Get details for a specific Indigo iAsset',
@@ -37,9 +64,9 @@ export function registerAssetTools(server: McpServer): void {
     async ({ asset }) => {
       try {
         const client = getIndexerClient();
-        const response = await client.get('/assets/');
-        const assets = response.data as Array<{ name: string }>;
-        const found = assets.find((a) => a.name === asset);
+        const response = await client.get('/assets');
+        const assets = response.data as Array<{ asset: string }>;
+        const found = assets.find((a) => a.asset === asset);
         if (!found) {
           return {
             content: [{ type: 'text' as const, text: `Asset ${asset} not found` }],
@@ -63,29 +90,38 @@ export function registerAssetTools(server: McpServer): void {
     }
   );
 
-  // 3. get_asset_price - { asset: AssetParam } → GET /assets/ + extract .price
   server.tool(
     'get_asset_price',
-    'Get the current price for a specific Indigo iAsset',
+    'Get the current price(s) for a specific Indigo iAsset, per collateral asset (ADA and others)',
     { asset: AssetParam },
     async ({ asset }) => {
       try {
         const client = getIndexerClient();
-        const response = await client.get('/assets/');
-        const assets = response.data as Array<{
-          name: string;
-          price: { price: number; expiration: number; slot: number };
-        }>;
-        const found = assets.find((a) => a.name === asset);
-        if (!found) {
+        const response = await client.get('/asset-prices');
+        const prices = (response.data as AssetPrice[]).filter((p) => p.asset === asset);
+        if (prices.length === 0) {
           return {
-            content: [{ type: 'text' as const, text: `Asset ${asset} not found` }],
+            content: [{ type: 'text' as const, text: `No price found for ${asset}` }],
             isError: true,
           };
         }
         return {
           content: [
-            { type: 'text' as const, text: JSON.stringify({ asset, ...found.price }, null, 2) },
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  asset,
+                  prices: prices.map((p) => ({
+                    collateralAsset: p.collateral_asset === '' ? 'ADA' : p.collateral_asset,
+                    price: Number(p.price),
+                    expiration: p.expiration,
+                  })),
+                },
+                null,
+                2
+              ),
+            },
           ],
         };
       } catch (error) {
@@ -102,13 +138,27 @@ export function registerAssetTools(server: McpServer): void {
     }
   );
 
-  // 4. get_ada_price - No params → GET /analytics/ada
   server.tool('get_ada_price', 'Get the current ADA price in USD', {}, async () => {
     try {
       const client = getIndexerClient();
-      const response = await client.get('/analytics/ada');
+      // The indexer has no dedicated ADA price route; derive ADA/USD from the
+      // INDY price feed, which reports INDY denominated in both ADA and USD.
+      const response = await client.get('/indy-price');
+      const raw = response.data as { ada_price: string; usd_price: string; timestamp: number };
+      const indyAda = Number(raw.ada_price);
+      const indyUsd = Number(raw.usd_price);
+      const adaUsd = indyAda > 0 ? indyUsd / indyAda : 0;
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              { usd: adaUsd, source: 'derived from INDY ada/usd feed', timestamp: raw.timestamp },
+              null,
+              2
+            ),
+          },
+        ],
       };
     } catch (error) {
       return {
@@ -123,19 +173,22 @@ export function registerAssetTools(server: McpServer): void {
     }
   });
 
-  // 5. get_indy_price - No params → GET /analytics/indy → parse string values to numbers
   server.tool('get_indy_price', 'Get the current INDY token price in ADA and USD', {}, async () => {
     try {
       const client = getIndexerClient();
-      const response = await client.get('/analytics/indy');
-      const raw = response.data as { ada: string; usd: string; timestamp: string };
-      const data = {
-        ada: Number(raw.ada),
-        usd: Number(raw.usd),
-        timestamp: Number(raw.timestamp),
-      };
+      const response = await client.get('/indy-price');
+      const raw = response.data as { ada_price: string; usd_price: string; timestamp: number };
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(
+              { ada: Number(raw.ada_price), usd: Number(raw.usd_price), timestamp: raw.timestamp },
+              null,
+              2
+            ),
+          },
+        ],
       };
     } catch (error) {
       return {

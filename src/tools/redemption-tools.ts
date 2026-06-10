@@ -3,16 +3,12 @@ import { z } from 'zod';
 import { getIndexerClient } from '../utils/indexer-client.js';
 import { AssetParam } from '../utils/validators.js';
 
-interface OrderBookEntry {
-  owner: string;
-  asset: string;
-  lovelaceAmount: number;
-  maxPrice: number;
-  claimableAmount: number;
-  [key: string]: unknown;
-}
+const ORDER_BOOK_UNAVAILABLE =
+  'The open redemption order book (LRP/ROB positions) is not exposed by the v3 indexer. ' +
+  'Use get_redemption_orders for executed redemptions, or read open ROB positions on-chain.';
 
 export function registerRedemptionTools(server: McpServer): void {
+  // The open order book of LRP/ROB positions is not indexed in v3.
   server.tool(
     'get_order_book',
     'Get open limited redemption positions from the order book, optionally filtered by asset or owners',
@@ -20,46 +16,27 @@ export function registerRedemptionTools(server: McpServer): void {
       asset: AssetParam.optional(),
       owners: z.array(z.string()).optional(),
     },
-    async ({ asset, owners }) => {
-      try {
-        const client = getIndexerClient();
-        const hasFilters = asset !== undefined || owners !== undefined;
-        const response = hasFilters
-          ? await client.post('/order-book/', { asset, owners })
-          : await client.get('/order-book/');
-        return {
-          content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Error fetching order book: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
+    async () => {
+      return { content: [{ type: 'text' as const, text: ORDER_BOOK_UNAVAILABLE }] };
     }
   );
 
   server.tool(
     'get_redemption_orders',
-    'Get redemption orders, optionally filtered by timestamp or price range',
+    'Get executed redemption orders, optionally filtered by iAsset',
     {
-      timestamp: z.number().optional().describe('Unix timestamp in milliseconds'),
-      in_range: z.boolean().optional().describe('Filter by price range'),
+      asset: AssetParam.optional(),
+      limit: z.number().min(1).max(500).optional().describe('Max number of records (default 100)'),
     },
-    async ({ timestamp, in_range }) => {
+    async ({ asset, limit }) => {
       try {
         const client = getIndexerClient();
-        const hasFilters = timestamp !== undefined || in_range !== undefined;
-        const response = hasFilters
-          ? await client.post('/rewards/redemption-orders', { timestamp, in_range })
-          : await client.get('/rewards/redemption-orders');
+        const response = await client.get('/redemptions');
+        let orders = response.data as Array<{ asset: string; [k: string]: unknown }>;
+        if (asset) orders = orders.filter((o) => o.asset === asset);
+        orders = orders.slice(0, limit ?? 100);
         return {
-          content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
+          content: [{ type: 'text' as const, text: JSON.stringify(orders, null, 2) }],
         };
       } catch (error) {
         return {
@@ -75,45 +52,14 @@ export function registerRedemptionTools(server: McpServer): void {
     }
   );
 
+  // The aggregated open-order queue depended on the order-book route, which is
+  // not available in v3.
   server.tool(
     'get_redemption_queue',
-    'Get aggregated redemption queue for a specific iAsset, sorted by max price ascending',
+    'Get aggregated redemption queue for a specific iAsset',
     { asset: AssetParam },
-    async ({ asset }) => {
-      try {
-        const client = getIndexerClient();
-        const response = await client.post('/order-book/', { asset });
-        const entries = response.data as OrderBookEntry[];
-        const sorted = [...entries].sort((a, b) => a.maxPrice - b.maxPrice);
-        const totalLovelace = sorted.reduce((sum, e) => sum + e.lovelaceAmount, 0);
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: JSON.stringify(
-                {
-                  asset,
-                  totalPositions: sorted.length,
-                  totalLovelace,
-                  entries: sorted,
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Error fetching redemption queue: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        };
-      }
+    async () => {
+      return { content: [{ type: 'text' as const, text: ORDER_BOOK_UNAVAILABLE }] };
     }
   );
 }
