@@ -6,7 +6,7 @@ export function registerDexTools(server: McpServer): void {
   server.tool('get_steelswap_tokens', 'Get all tokens available on Steelswap DEX', {}, async () => {
     try {
       const client = getIndexerClient();
-      const response = await client.get('/steelswap/tokens');
+      const response = await client.get('/v3/steelswap/tokens');
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
       };
@@ -34,7 +34,11 @@ export function registerDexTools(server: McpServer): void {
     async ({ tokenIn, tokenOut, amountIn }) => {
       try {
         const client = getIndexerClient();
-        const response = await client.post('/steelswap/estimate', { tokenIn, tokenOut, amountIn });
+        const response = await client.post('/v3/steelswap/estimate', {
+          tokenIn,
+          tokenOut,
+          amountIn,
+        });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
         };
@@ -63,7 +67,7 @@ export function registerDexTools(server: McpServer): void {
     async ({ tokenA, tokenB, dex }) => {
       try {
         const client = getIndexerClient();
-        const response = await client.post('/iris/liquidity-pools', { tokenA, tokenB, dex });
+        const response = await client.post('/v3/iris/liquidity-pools', { tokenA, tokenB, dex });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
         };
@@ -90,7 +94,7 @@ export function registerDexTools(server: McpServer): void {
     async ({ address }) => {
       try {
         const client = getIndexerClient();
-        const response = await client.get('/blockfrost/balances', { params: { address } });
+        const response = await client.get('/v3/blockfrost/balances', { params: { address } });
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
         };

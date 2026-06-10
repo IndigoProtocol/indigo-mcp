@@ -40,7 +40,7 @@ describe('collector tools', () => {
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/collector/utxos');
+      expect(mockGet).toHaveBeenCalledWith('/v3/collector/utxos');
     });
 
     it('should POST when length provided', async () => {
@@ -51,7 +51,7 @@ describe('collector tools', () => {
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed).toEqual(mockData);
-      expect(mockPost).toHaveBeenCalledWith('/collector/utxos', { length: 10 });
+      expect(mockPost).toHaveBeenCalledWith('/v3/collector/utxos', { length: 10 });
     });
 
     it('should return error on failure', async () => {

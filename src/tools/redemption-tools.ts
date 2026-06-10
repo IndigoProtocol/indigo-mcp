@@ -3,21 +3,52 @@ import { z } from 'zod';
 import { getIndexerClient } from '../utils/indexer-client.js';
 import { AssetParam } from '../utils/validators.js';
 
-const ORDER_BOOK_UNAVAILABLE =
-  'The open redemption order book (LRP/ROB positions) is not exposed by the v3 indexer. ' +
-  'Use get_redemption_orders for executed redemptions, or read open ROB positions on-chain.';
+interface OrderBookEntry {
+  owner: string;
+  iasset: string;
+  orderType: unknown;
+  assetAmounts: unknown;
+  outputHash: string;
+  outputIndex: number;
+  [key: string]: unknown;
+}
+
+async function fetchOrderBook(): Promise<OrderBookEntry[]> {
+  const client = getIndexerClient();
+  const res = await client.get('/v3/order-book');
+  return res.data as OrderBookEntry[];
+}
 
 export function registerRedemptionTools(server: McpServer): void {
-  // The open order book of LRP/ROB positions is not indexed in v3.
   server.tool(
     'get_order_book',
-    'Get open limited redemption positions from the order book, optionally filtered by asset or owners',
+    'Get open ROB (redemption order book) positions, optionally filtered by iAsset or owners',
     {
       asset: AssetParam.optional(),
       owners: z.array(z.string()).optional(),
     },
-    async () => {
-      return { content: [{ type: 'text' as const, text: ORDER_BOOK_UNAVAILABLE }] };
+    async ({ asset, owners }) => {
+      try {
+        let entries = await fetchOrderBook();
+        if (asset) entries = entries.filter((e) => e.iasset === asset);
+        if (owners && owners.length > 0) {
+          const set = new Set(owners);
+          entries = entries.filter((e) => set.has(e.owner));
+        }
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(entries, null, 2) }],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching order book: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
     }
   );
 
@@ -52,14 +83,32 @@ export function registerRedemptionTools(server: McpServer): void {
     }
   );
 
-  // The aggregated open-order queue depended on the order-book route, which is
-  // not available in v3.
   server.tool(
     'get_redemption_queue',
-    'Get aggregated redemption queue for a specific iAsset',
+    'Get the open ROB order-book entries for a specific iAsset',
     { asset: AssetParam },
-    async () => {
-      return { content: [{ type: 'text' as const, text: ORDER_BOOK_UNAVAILABLE }] };
+    async ({ asset }) => {
+      try {
+        const entries = (await fetchOrderBook()).filter((e) => e.iasset === asset);
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify({ asset, totalPositions: entries.length, entries }, null, 2),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error fetching redemption queue: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+          isError: true,
+        };
+      }
     }
   );
 }
