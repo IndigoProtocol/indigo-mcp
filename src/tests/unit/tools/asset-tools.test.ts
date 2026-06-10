@@ -29,6 +29,7 @@ function routed(url: string) {
   if (url === '/assets') return Promise.resolve({ data: mockAssets });
   if (url === '/asset-prices') return Promise.resolve({ data: mockPrices });
   if (url === '/indy-price') return Promise.resolve({ data: mockIndy });
+  if (url === '/v3/analytics/ada') return Promise.resolve({ data: { price: 0.163 } });
   return Promise.reject(new Error('Unknown endpoint ' + url));
 }
 
@@ -96,13 +97,12 @@ describe('asset tools', () => {
   });
 
   describe('get_ada_price', () => {
-    it('derives ADA/USD from the INDY feed', async () => {
+    it('reads ADA/USD from /v3/analytics/ada', async () => {
       mockGet.mockImplementation(routed);
       const result = await tools.get('get_ada_price')!({});
       const parsed = JSON.parse(result.content[0].text);
-      // 0.1024 / 0.64 = 0.16
-      expect(parsed.usd).toBeCloseTo(0.16, 5);
-      expect(mockGet).toHaveBeenCalledWith('/indy-price');
+      expect(parsed.usd).toBe(0.163);
+      expect(mockGet).toHaveBeenCalledWith('/v3/analytics/ada');
     });
 
     it('returns error on failure', async () => {

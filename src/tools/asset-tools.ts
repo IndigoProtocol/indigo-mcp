@@ -141,24 +141,10 @@ export function registerAssetTools(server: McpServer): void {
   server.tool('get_ada_price', 'Get the current ADA price in USD', {}, async () => {
     try {
       const client = getIndexerClient();
-      // The indexer has no dedicated ADA price route; derive ADA/USD from the
-      // INDY price feed, which reports INDY denominated in both ADA and USD.
-      const response = await client.get('/indy-price');
-      const raw = response.data as { ada_price: string; usd_price: string; timestamp: number };
-      const indyAda = Number(raw.ada_price);
-      const indyUsd = Number(raw.usd_price);
-      const adaUsd = indyAda > 0 ? indyUsd / indyAda : 0;
+      const response = await client.get('/v3/analytics/ada');
+      const raw = response.data as { price: number };
       return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(
-              { usd: adaUsd, source: 'derived from INDY ada/usd feed', timestamp: raw.timestamp },
-              null,
-              2
-            ),
-          },
-        ],
+        content: [{ type: 'text' as const, text: JSON.stringify({ usd: raw.price }, null, 2) }],
       };
     } catch (error) {
       return {

@@ -12,8 +12,8 @@ export function registerCollectorTools(server: McpServer): void {
       try {
         const client = getIndexerClient();
         const response = length
-          ? await client.post('/collector/utxos', { length })
-          : await client.get('/collector/utxos');
+          ? await client.post('/v3/collector/utxos', { length })
+          : await client.get('/v3/collector/utxos');
         return {
           content: [{ type: 'text' as const, text: JSON.stringify(response.data, null, 2) }],
         };

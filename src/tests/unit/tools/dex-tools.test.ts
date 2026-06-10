@@ -40,7 +40,7 @@ describe('dex tools', () => {
       const parsed = JSON.parse(result.content[0].text);
 
       expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/steelswap/tokens');
+      expect(mockGet).toHaveBeenCalledWith('/v3/steelswap/tokens');
     });
 
     it('should return error on failure', async () => {
@@ -64,7 +64,7 @@ describe('dex tools', () => {
       });
       const parsed = JSON.parse(result.content[0].text);
 
-      expect(mockPost).toHaveBeenCalledWith('/steelswap/estimate', {
+      expect(mockPost).toHaveBeenCalledWith('/v3/steelswap/estimate', {
         tokenIn: 'ADA',
         tokenOut: 'iUSD',
         amountIn: 1000,
@@ -98,7 +98,7 @@ describe('dex tools', () => {
       });
       const parsed = JSON.parse(result.content[0].text);
 
-      expect(mockPost).toHaveBeenCalledWith('/iris/liquidity-pools', {
+      expect(mockPost).toHaveBeenCalledWith('/v3/iris/liquidity-pools', {
         tokenA: 'ADA',
         tokenB: 'iUSD',
         dex: 'minswap',
@@ -123,7 +123,7 @@ describe('dex tools', () => {
       const result = await tools.get('get_blockfrost_balances')!({ address: 'addr1test' });
       const parsed = JSON.parse(result.content[0].text);
 
-      expect(mockGet).toHaveBeenCalledWith('/blockfrost/balances', {
+      expect(mockGet).toHaveBeenCalledWith('/v3/blockfrost/balances', {
         params: { address: 'addr1test' },
       });
       expect(parsed).toEqual(mockData);

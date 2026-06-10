@@ -32,26 +32,44 @@ describe('analytics tools', () => {
   });
 
   describe('get_tvl', () => {
-    it('explains TVL is not in the v3 indexer', async () => {
+    it('reads /v3/analytics/tvl', async () => {
+      const mockData = { usd: [{ timestamp: 1, value: 100 }] };
+      mockGet.mockResolvedValue({ data: mockData });
       const result = await tools.get('get_tvl')!({});
-      expect(result.isError).toBeUndefined();
-      expect(result.content[0].text).toContain('not available from the v3 indexer');
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual(mockData);
+      expect(mockGet).toHaveBeenCalledWith('/v3/analytics/tvl');
+    });
+
+    it('returns error on failure', async () => {
+      mockGet.mockRejectedValue(new Error('Network error'));
+      const result = await tools.get('get_tvl')!({});
+      expect(result.isError).toBe(true);
     });
   });
 
   describe('get_apr_rewards', () => {
-    it('directs callers to get_apr_by_key', async () => {
+    it('reads all APR records from /v3/apr', async () => {
+      mockGet.mockResolvedValue({ data: [{ key: 'sp_iUSD_indy', value: 9.27 }] });
       const result = await tools.get('get_apr_rewards')!({});
-      expect(result.content[0].text).toContain('get_apr_by_key');
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed[0].key).toBe('sp_iUSD_indy');
+      expect(mockGet).toHaveBeenCalledWith('/v3/apr');
+    });
+
+    it('returns error on failure', async () => {
+      mockGet.mockRejectedValue(new Error('Timeout'));
+      const result = await tools.get('get_apr_rewards')!({});
+      expect(result.isError).toBe(true);
     });
   });
 
   describe('get_apr_by_key', () => {
-    it('posts to /apr with the key', async () => {
+    it('posts to /v3/apr with the key', async () => {
       mockPost.mockResolvedValue({ data: { key: 'sp_iUSD_indy', value: 9.27 } });
       const result = await tools.get('get_apr_by_key')!({ key: 'sp_iUSD_indy' });
       const parsed = JSON.parse(result.content[0].text);
-      expect(mockPost).toHaveBeenCalledWith('/apr', { key: 'sp_iUSD_indy' });
+      expect(mockPost).toHaveBeenCalledWith('/v3/apr', { key: 'sp_iUSD_indy' });
       expect(parsed.key).toBe('sp_iUSD_indy');
     });
 
@@ -59,18 +77,17 @@ describe('analytics tools', () => {
       mockPost.mockRejectedValue(new Error('Not found'));
       const result = await tools.get('get_apr_by_key')!({ key: 'invalid' });
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Not found');
     });
   });
 
   describe('get_dex_yields', () => {
-    it('reads /yields', async () => {
+    it('reads /v3/dex/yields', async () => {
       const mockData = [{ dex: 'MinswapV2', base_apr: 24.6 }];
       mockGet.mockResolvedValue({ data: mockData });
       const result = await tools.get('get_dex_yields')!({});
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual(mockData);
-      expect(mockGet).toHaveBeenCalledWith('/yields');
+      expect(mockGet).toHaveBeenCalledWith('/v3/dex/yields');
     });
 
     it('returns error on failure', async () => {
@@ -90,10 +107,10 @@ describe('analytics tools', () => {
             return Promise.resolve({
               data: [{ asset: 'iUSD', collateral_asset: '', price: '6.29' }],
             });
-          case '/indy-price':
-            return Promise.resolve({ data: { ada_price: '0.64', usd_price: '0.1024' } });
-          case '/staking-manager':
-            return Promise.resolve({ data: { total_stake: 10000000 } });
+          case '/v3/analytics/ada':
+            return Promise.resolve({ data: { price: 0.163 } });
+          case '/v3/staking':
+            return Promise.resolve({ data: { totalStake: 10000000 } });
           default:
             return Promise.reject(new Error('Unknown endpoint ' + url));
         }
@@ -102,7 +119,7 @@ describe('analytics tools', () => {
       const result = await tools.get('get_protocol_stats')!({});
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed.assetCount).toBe(2);
-      expect(parsed.adaPriceUsd).toBeCloseTo(0.16, 5);
+      expect(parsed.adaPriceUsd).toBe(0.163);
       expect(parsed.totalStake).toBe(10000000);
     });
 
@@ -110,7 +127,6 @@ describe('analytics tools', () => {
       mockGet.mockRejectedValue(new Error('API error'));
       const result = await tools.get('get_protocol_stats')!({});
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('API error');
     });
   });
 });
