@@ -4,6 +4,11 @@ set -euo pipefail
 OUT_DIR=".smithery/stdio"
 mkdir -p "$OUT_DIR"
 
+# Keep these esbuild options in sync with scripts/build.sh: libsodium and undici
+# are marked external (their ESM builds don't bundle cleanly), and the banner
+# polyfills the fetch globals from undici.
+BANNER='import { createRequire as __banner_createRequire } from "module"; import { fileURLToPath as __banner_fileURLToPath } from "url"; import { dirname as __banner_dirname } from "path"; import { Request as UndiciRequest, Response as UndiciResponse, Headers as UndiciHeaders, fetch as undiciFetch } from "undici"; const require = __banner_createRequire(import.meta.url); const __filename = __banner_fileURLToPath(import.meta.url); const __dirname = __banner_dirname(__filename); if (typeof globalThis.Request === "undefined") { globalThis.Request = UndiciRequest; globalThis.Response = UndiciResponse; globalThis.Headers = UndiciHeaders; globalThis.fetch = undiciFetch; }'
+
 echo "Building ESM bundle..."
 npx esbuild src/index.ts \
   --bundle \
@@ -12,12 +17,16 @@ npx esbuild src/index.ts \
   --outfile="$OUT_DIR/index.js" \
   --target=node18 \
   --main-fields=module,main \
-  --banner:js="import { createRequire as __banner_createRequire } from 'module'; import { fileURLToPath as __banner_fileURLToPath } from 'url'; import { dirname as __banner_dirname } from 'path'; const require = __banner_createRequire(import.meta.url); const __filename = __banner_fileURLToPath(import.meta.url); const __dirname = __banner_dirname(__filename);"
+  --external:undici \
+  --external:libsodium-wrappers-sumo \
+  --external:libsodium-sumo \
+  --banner:js="$BANNER"
 
 echo "Copying WASM files..."
-cp node_modules/@anastasia-labs/cardano-multiplatform-lib-nodejs/cardano_multiplatform_lib_bg.wasm "$OUT_DIR/"
-cp node_modules/@lucid-evolution/uplc/dist/node/uplc_tx_bg.wasm "$OUT_DIR/"
-cp node_modules/@emurgo/cardano-message-signing-nodejs/cardano_message_signing_bg.wasm "$OUT_DIR/"
+# Locate WASM via find so this works under pnpm's node_modules layout (matches scripts/build.sh).
+find node_modules -path "*cardano-multiplatform-lib-nodejs*" -name "cardano_multiplatform_lib_bg.wasm" -exec cp {} "$OUT_DIR/" \; 2>/dev/null || echo "CML WASM not found"
+find node_modules -path "*uplc*/dist/node*" -name "uplc_tx_bg.wasm" -exec cp {} "$OUT_DIR/" \; 2>/dev/null || echo "UPLC WASM not found"
+find node_modules -path "*cardano-message-signing-nodejs*" -name "cardano_message_signing_bg.wasm" -exec cp {} "$OUT_DIR/" \; 2>/dev/null || echo "CMS WASM not found"
 
 echo "Creating MCPB manifest..."
 COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
