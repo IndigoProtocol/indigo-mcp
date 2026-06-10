@@ -8,10 +8,10 @@ MCP server for [Indigo Protocol](https://indigoprotocol.io/) — exposes Indigo 
 
 ## ⚡ Quick Start — Full Cardano DeFi Stack
 
-### MCP Servers (63 tools)
+### MCP Servers (75 tools)
 
 ```bash
-# 1. Install & Setup Indigo MCP (57 tools)
+# 1. Install & Setup Indigo MCP (69 tools)
 npm install -g @indigoprotocol/indigo-mcp
 npx @indigoprotocol/indigo-mcp setup
 
@@ -154,7 +154,7 @@ notepad "$env:APPDATA\Claude\claude_desktop_config.json"
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
@@ -174,7 +174,7 @@ If you use nvm and have multiple Node versions, you may need to specify the full
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
         "PATH": "/Users/YOUR_USERNAME/.nvm/versions/node/v22.22.0/bin:/usr/local/bin:/usr/bin:/bin",
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
@@ -199,7 +199,7 @@ nano ~/.claude/settings.json
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
@@ -218,7 +218,7 @@ Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project-level):
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
@@ -237,7 +237,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id"
       }
     }
@@ -286,7 +286,7 @@ For full Cardano DeFi capabilities, use both Indigo MCP and [Cardano MCP](https:
 Run the server directly via stdio:
 
 ```bash
-INDEXER_URL=https://analytics.indigoprotocol.io/api/v1 \
+INDEXER_URL=https://analytics.indigoprotocol.io/api \
 BLOCKFROST_API_KEY=your-blockfrost-project-id \
 npx @indigoprotocol/indigo-mcp
 ```
@@ -443,11 +443,36 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `store_on_ipfs`       | Store text content on IPFS               | `text`: content to store       |
 | `retrieve_from_ipfs`  | Retrieve content from IPFS by CID        | `cid`: IPFS content identifier |
 
+### Interest Tools (v3)
+
+| Tool                   | Description                                                   | Parameters                                    |
+| ---------------------- | ------------------------------------------------------------ | --------------------------------------------- |
+| `collect_interest`     | Build a tx to collect accrued interest for one or more CDPs  | `asset`, `cdps[]`                             |
+| `distribute_interest`  | Build a tx to distribute collected interest (admin)          | `address`                                     |
+| `feed_interest_oracle` | Feed a new interest rate to the interest oracle (admin)      | `address`, oracle params                      |
+| `get_interest_oracle`  | Read the current interest oracle state for an iAsset         | `asset`                                       |
+
+### Oracle / Pyth Tools (v3)
+
+| Tool                | Description                                                        | Parameters                          |
+| ------------------- | ----------------------------------------------------------------- | ----------------------------------- |
+| `get_oracle_price`  | On-chain price for an iAsset (OracleNft / Delisted / Pyth)        | `asset`                             |
+| `get_pyth_price`    | Read the Pyth price-feed config for an iAsset                     | `asset`                             |
+| `feed_price_oracle` | Feed a new price to an OracleNft-backed price oracle (admin)      | `address`, `oracleTxHash`, price    |
+
+### Stableswap Tools (v3)
+
+| Tool                     | Description                                                   | Parameters                                  |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------------- |
+| `get_stableswap_pool`    | Get the stableswap pool state for an (iAsset, collateral)    | `asset`                                     |
+| `create_stableswap_order`| Build a tx to swap collateral↔iAsset via the stableswap pool | `address`, `asset`, `amount`, `minting`     |
+| `cancel_stableswap_order`| Build a tx to cancel a stableswap order                      | `address`, `orderTxHash`, `orderOutputIndex`|
+
 ## Environment Variables
 
 | Variable               | Required      | Default                                      | Description                                                 |
 | ---------------------- | ------------- | -------------------------------------------- | ----------------------------------------------------------- |
-| `INDEXER_URL`          | No            | `https://analytics.indigoprotocol.io/api/v1` | Indigo analytics API base URL                               |
+| `INDEXER_URL`          | No            | `https://analytics.indigoprotocol.io/api` | Indigo analytics API base URL                               |
 | `BLOCKFROST_API_KEY`   | For write ops | —                                            | Blockfrost project ID for transaction building              |
 | `CARDANO_NETWORK`      | No            | `mainnet`                                    | Cardano network: `mainnet`, `preprod`, or `preview`         |
 | `MCP_TRANSPORT`        | No            | `stdio`                                      | Transport mode: `stdio` or `http`                           |
@@ -642,7 +667,7 @@ Add the `env` block to whichever MCP config file your client uses:
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
         "X402_PRIVATE_KEY": "0xYourPayerPrivateKey",
         "X402_TESTNET": "true"
@@ -661,7 +686,7 @@ Add the `env` block to whichever MCP config file your client uses:
       "command": "npx",
       "args": ["-y", "@indigoprotocol/indigo-mcp"],
       "env": {
-        "INDEXER_URL": "https://analytics.indigoprotocol.io/api/v1",
+        "INDEXER_URL": "https://analytics.indigoprotocol.io/api",
         "BLOCKFROST_API_KEY": "your-blockfrost-project-id",
         "X402_PRIVATE_KEY": "0xYourPayerPrivateKey",
         "X402_TESTNET": "true"
