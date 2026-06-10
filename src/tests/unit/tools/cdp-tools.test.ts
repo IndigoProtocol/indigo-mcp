@@ -23,10 +23,45 @@ function createTestServer() {
   return { server, tools };
 }
 
-const mockLoans = [
-  { owner: 'abc123', asset: 'iUSD', collateral: 150_000_000, minted: 100_000_000, minRatio: 150 },
-  { owner: 'abc123', asset: 'iBTC', collateral: 200_000_000, minted: 50_000_000, minRatio: 150 },
-  { owner: 'def456', asset: 'iUSD', collateral: 300_000_000, minted: 200_000_000, minRatio: 150 },
+// v3 CDP shape — mintedAmt replaces minted, interest tracking added.
+const mockCdps = [
+  {
+    owner: 'abc123',
+    asset: 'iUSD',
+    collateral: 150_000_000,
+    mintedAmt: 100_000_000,
+    minRatio: 150,
+  },
+  {
+    owner: 'abc123',
+    asset: 'iBTC',
+    collateral: 200_000_000,
+    mintedAmt: 50_000_000,
+    minRatio: 150,
+  },
+  {
+    owner: 'def456',
+    asset: 'iUSD',
+    collateral: 300_000_000,
+    mintedAmt: 200_000_000,
+    minRatio: 150,
+  },
+];
+
+// v3 asset shape — ratios at top level, optional interestOracle.
+const mockAssets = [
+  {
+    name: 'iUSD',
+    price: { price: 1.0 },
+    maintenanceRatio: 150,
+    liquidationRatio: 110,
+  },
+  {
+    name: 'iBTC',
+    price: { price: 60000 },
+    maintenanceRatio: 150,
+    liquidationRatio: 110,
+  },
 ];
 
 describe('cdp tools', () => {
@@ -43,7 +78,7 @@ describe('cdp tools', () => {
 
   describe('get_all_cdps', () => {
     it('should return all CDPs', async () => {
-      mockGet.mockResolvedValue({ data: mockLoans });
+      mockGet.mockResolvedValue({ data: mockCdps });
 
       const result = await tools.get('get_all_cdps')!({});
       const parsed = JSON.parse(result.content[0].text);
@@ -54,7 +89,7 @@ describe('cdp tools', () => {
     });
 
     it('should filter by asset', async () => {
-      mockGet.mockResolvedValue({ data: mockLoans });
+      mockGet.mockResolvedValue({ data: mockCdps });
 
       const result = await tools.get('get_all_cdps')!({ asset: 'iUSD' });
       const parsed = JSON.parse(result.content[0].text);
@@ -64,7 +99,7 @@ describe('cdp tools', () => {
     });
 
     it('should apply pagination', async () => {
-      mockGet.mockResolvedValue({ data: mockLoans });
+      mockGet.mockResolvedValue({ data: mockCdps });
 
       const result = await tools.get('get_all_cdps')!({ limit: 1, offset: 1 });
       const parsed = JSON.parse(result.content[0].text);
@@ -73,6 +108,25 @@ describe('cdp tools', () => {
       expect(parsed.limit).toBe(1);
       expect(parsed.offset).toBe(1);
       expect(parsed.total).toBe(3);
+    });
+
+    it('should fall back to /loans/ when /cdps/ is unavailable', async () => {
+      const legacyLoans = mockCdps.map(({ mintedAmt, ...rest }) => ({
+        ...rest,
+        minted: mintedAmt,
+      }));
+      mockGet.mockImplementation((url: string) => {
+        if (url === '/cdps/') return Promise.reject(new Error('Not Found'));
+        if (url === '/loans/') return Promise.resolve({ data: legacyLoans });
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+
+      const result = await tools.get('get_all_cdps')!({});
+      const parsed = JSON.parse(result.content[0].text);
+
+      expect(parsed.total).toBe(3);
+      // Normalised field should be present after migration.
+      expect(parsed.cdps[0].mintedAmt).toBeDefined();
     });
 
     it('should return error on failure', async () => {
@@ -88,7 +142,7 @@ describe('cdp tools', () => {
   describe('get_cdps_by_owner', () => {
     it('should return CDPs filtered by owner', async () => {
       (extractPaymentCredential as any).mockReturnValue('abc123');
-      mockGet.mockResolvedValue({ data: mockLoans });
+      mockGet.mockResolvedValue({ data: mockCdps });
 
       const result = await tools.get('get_cdps_by_owner')!({ owner: 'abc123' });
       const parsed = JSON.parse(result.content[0].text);
@@ -112,7 +166,7 @@ describe('cdp tools', () => {
   describe('get_cdps_by_address', () => {
     it('should return CDPs filtered by address', async () => {
       (extractPaymentCredential as any).mockReturnValue('def456');
-      mockGet.mockResolvedValue({ data: mockLoans });
+      mockGet.mockResolvedValue({ data: mockCdps });
 
       const result = await tools.get('get_cdps_by_address')!({ address: 'addr1someaddress' });
       const parsed = JSON.parse(result.content[0].text);
@@ -124,30 +178,17 @@ describe('cdp tools', () => {
   });
 
   describe('analyze_cdp_health', () => {
-    const mockAssets = [
-      {
-        name: 'iUSD',
-        price: { price: 1.0 },
-        interest: { ratio: 1.0, minRatio: 150, liquidation: 110 },
-      },
-      {
-        name: 'iBTC',
-        price: { price: 60000 },
-        interest: { ratio: 1.0, minRatio: 150, liquidation: 110 },
-      },
-    ];
-
     it('should analyze CDP health with safe status', async () => {
       (extractPaymentCredential as any).mockReturnValue('abc123');
       mockGet.mockImplementation((url: string) => {
-        if (url === '/loans/') {
+        if (url === '/cdps/') {
           return Promise.resolve({
             data: [
               {
                 owner: 'abc123',
                 asset: 'iUSD',
                 collateral: 300_000_000,
-                minted: 100_000_000,
+                mintedAmt: 100_000_000,
                 minRatio: 150,
               },
             ],
@@ -170,14 +211,14 @@ describe('cdp tools', () => {
     it('should return warning status', async () => {
       (extractPaymentCredential as any).mockReturnValue('abc123');
       mockGet.mockImplementation((url: string) => {
-        if (url === '/loans/') {
+        if (url === '/cdps/') {
           return Promise.resolve({
             data: [
               {
                 owner: 'abc123',
                 asset: 'iUSD',
                 collateral: 160_000_000,
-                minted: 100_000_000,
+                mintedAmt: 100_000_000,
                 minRatio: 150,
               },
             ],
@@ -198,14 +239,14 @@ describe('cdp tools', () => {
     it('should return at-risk status', async () => {
       (extractPaymentCredential as any).mockReturnValue('abc123');
       mockGet.mockImplementation((url: string) => {
-        if (url === '/loans/') {
+        if (url === '/cdps/') {
           return Promise.resolve({
             data: [
               {
                 owner: 'abc123',
                 asset: 'iUSD',
                 collateral: 120_000_000,
-                minted: 100_000_000,
+                mintedAmt: 100_000_000,
                 minRatio: 150,
               },
             ],
@@ -226,14 +267,14 @@ describe('cdp tools', () => {
     it('should return liquidatable status', async () => {
       (extractPaymentCredential as any).mockReturnValue('abc123');
       mockGet.mockImplementation((url: string) => {
-        if (url === '/loans/') {
+        if (url === '/cdps/') {
           return Promise.resolve({
             data: [
               {
                 owner: 'abc123',
                 asset: 'iUSD',
                 collateral: 100_000_000,
-                minted: 100_000_000,
+                mintedAmt: 100_000_000,
                 minRatio: 150,
               },
             ],
@@ -251,10 +292,67 @@ describe('cdp tools', () => {
       expect(parsed.cdps[0].status).toBe('liquidatable');
     });
 
+    it('should incorporate accrued interest when v3 tracking fields are present', async () => {
+      (extractPaymentCredential as any).mockReturnValue('abc123');
+      // Without interest the ratio is 300 % (safe).  After adding simulated
+      // accrued interest that doubles the effective debt it should drop to ~150 %
+      // (warning / boundary of safe), but because the SDK function is called we
+      // just verify the effectiveMintedTokens > mintedTokens and
+      // accruedInterestLovelace > 0.
+      const nowMs = BigInt(Date.now());
+      mockGet.mockImplementation((url: string) => {
+        if (url === '/cdps/') {
+          return Promise.resolve({
+            data: [
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 300_000_000,
+                mintedAmt: 100_000_000,
+                minRatio: 150,
+                interestTracking: {
+                  // Settled a year ago — will produce meaningful accrued interest.
+                  lastSettled: String(nowMs - 31_536_000_000n),
+                  unitaryInterestSnapshot: '1000000000000000000',
+                },
+              },
+            ],
+          });
+        }
+        if (url === '/assets/') {
+          return Promise.resolve({
+            data: [
+              {
+                name: 'iUSD',
+                price: { price: 1.0 },
+                maintenanceRatio: 150,
+                liquidationRatio: 110,
+                interestOracle: {
+                  // 5 % annual rate expressed as a fixed-point bigint (1e18 = 1).
+                  unitaryInterest: '1050000000000000000',
+                  interestRate: '50000000000000000',
+                  lastUpdated: String(nowMs),
+                },
+              },
+            ],
+          });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+
+      const result = await tools.get('analyze_cdp_health')!({ owner: 'abc123' });
+      const parsed = JSON.parse(result.content[0].text);
+
+      expect(parsed.cdps[0].accruedInterestLovelace).toBeGreaterThan(0);
+      expect(parsed.cdps[0].effectiveMintedTokens).toBeGreaterThanOrEqual(
+        parsed.cdps[0].mintedTokens
+      );
+    });
+
     it('should handle no CDPs found', async () => {
       (extractPaymentCredential as any).mockReturnValue('nobody');
       mockGet.mockImplementation((url: string) => {
-        if (url === '/loans/') return Promise.resolve({ data: [] });
+        if (url === '/cdps/') return Promise.resolve({ data: [] });
         if (url === '/assets/') return Promise.resolve({ data: mockAssets });
         return Promise.reject(new Error('Unknown endpoint'));
       });
@@ -273,6 +371,50 @@ describe('cdp tools', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('API error');
+    });
+
+    it('should fall back gracefully when interestOracle data is missing', async () => {
+      (extractPaymentCredential as any).mockReturnValue('abc123');
+      mockGet.mockImplementation((url: string) => {
+        if (url === '/cdps/') {
+          return Promise.resolve({
+            data: [
+              {
+                owner: 'abc123',
+                asset: 'iUSD',
+                collateral: 300_000_000,
+                mintedAmt: 100_000_000,
+                minRatio: 150,
+                interestTracking: {
+                  lastSettled: '1000000',
+                  unitaryInterestSnapshot: '1000000000000000000',
+                },
+              },
+            ],
+          });
+        }
+        if (url === '/assets/') {
+          return Promise.resolve({
+            data: [
+              {
+                name: 'iUSD',
+                price: { price: 1.0 },
+                maintenanceRatio: 150,
+                liquidationRatio: 110,
+                // no interestOracle field
+              },
+            ],
+          });
+        }
+        return Promise.reject(new Error('Unknown endpoint'));
+      });
+
+      const result = await tools.get('analyze_cdp_health')!({ owner: 'abc123' });
+      const parsed = JSON.parse(result.content[0].text);
+
+      // No oracle → accrued interest is zero, ratio computed from raw mintedAmt.
+      expect(parsed.cdps[0].accruedInterestLovelace).toBe(0);
+      expect(parsed.cdps[0].collateralRatio).toBe(300);
     });
   });
 });
