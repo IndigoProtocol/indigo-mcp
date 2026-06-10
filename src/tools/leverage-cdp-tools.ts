@@ -1,121 +1,23 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { LucidEvolution, Network, UTxO } from '@lucid-evolution/lucid';
-import { fromText } from '@lucid-evolution/lucid';
-import type { SystemParams, IAssetContent, LRPDatum } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
-import {
-  leverageCdpWithLrp,
-  fromSystemParamsAsset,
-  assetClassToUnit,
-  createScriptAddress,
-  parseIAssetDatumOrThrow,
-  parseLrpDatumOrThrow,
-  getInlineDatumOrThrow,
-} from '@indigoprotocol/indigo-sdk';
+import { leverageCdpWithRob } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
+import {
+  findIAsset,
+  findCollateralAsset,
+  findCdpCreatorOref,
+  findInterestOracleOref,
+  findPriceOracleOref,
+  findTreasuryOref,
+  findAllRobs,
+  toOutRef,
+} from '../utils/v3-finders.js';
 
-function getNetwork(lucid: LucidEvolution): Network {
-  const network = lucid.config().network;
-  if (!network) throw new Error('Lucid network not configured');
-  return network;
-}
-
-/**
- * Resolve the iAsset state UTxO for a given asset name (e.g. "iUSD").
- */
-async function findIAssetUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution
-): Promise<{ utxo: UTxO; datum: IAssetContent }> {
-  const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpHash);
-  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
-  const assetHex = fromText(asset);
-  for (const utxo of utxos) {
-    try {
-      const datum = parseIAssetDatumOrThrow(getInlineDatumOrThrow(utxo));
-      if (datum.assetName === assetHex) {
-        return { utxo, datum };
-      }
-    } catch {
-      // Skip UTxOs with unparseable datums
-    }
-  }
-  throw new Error(`iAsset UTxO for ${asset} not found`);
-}
-
-/**
- * Find the CDP creator UTxO (holds the cdpCreatorNft at the cdpCreator validator address).
- */
-async function findCdpCreatorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const nftAc = fromSystemParamsAsset(params.cdpCreatorParams.cdpCreatorNft);
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpCreatorHash);
-  const utxos = await lucid.utxosAtWithUnit(address, assetClassToUnit(nftAc));
-  if (utxos.length !== 1) {
-    throw new Error(`Expected a single CDP creator UTxO, found ${utxos.length}`);
-  }
-  return utxos[0];
-}
-
-/**
- * Find a collector UTxO at the collector validator address.
- */
-async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.collectorHash);
-  const utxos = await lucid.utxosAt(address);
-  if (utxos.length === 0) {
-    throw new Error('No collector UTxOs found');
-  }
-  return utxos[0];
-}
-
-/**
- * Find the price oracle UTxO for a given iAsset.
- */
-async function findPriceOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const priceInfo = iAssetDatum.price as
-    | { Delisted: unknown }
-    | { Oracle: { content: { oracleNft: { currencySymbol: string; tokenName: string } } } };
-  if ('Delisted' in priceInfo) {
-    throw new Error('iAsset is delisted, cannot perform CDP operations');
-  }
-  const oracleNft = priceInfo.Oracle.content.oracleNft;
-  const oracleUnit = oracleNft.currencySymbol + oracleNft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
-
-/**
- * Find the interest oracle UTxO for a given iAsset.
- */
-async function findInterestOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const nft = iAssetDatum.interestOracleNft;
-  const oracleUnit = nft.currencySymbol + nft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
-
-/**
- * Fetch all ROB UTxOs at the ROB validator address and parse their datums.
- */
-async function findAllLrpUtxos(
-  params: SystemParams,
-  lucid: LucidEvolution
-): Promise<[UTxO, LRPDatum][]> {
-  const lrpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.lrpHash);
-  const utxos = await lucid.utxosAt(lrpAddress);
-  const result: [UTxO, LRPDatum][] = [];
-  for (const utxo of utxos) {
-    try {
-      const datum = parseLrpDatumOrThrow(getInlineDatumOrThrow(utxo));
-      result.push([utxo, datum]);
-    } catch {
-      // Skip UTxOs with unparseable datums
-    }
-  }
-  return result;
-}
+const PYTH_UNSUPPORTED =
+  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
+  'Pyth-priced operations are not yet supported by this server.';
 
 export function registerLeverageCdpTools(server: McpServer): void {
   server.tool(
@@ -125,7 +27,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
       address: z.string().describe('User Cardano bech32 address (addr1... or addr_test1...)'),
       asset: AssetParam,
       leverage: z.number().describe('Leverage multiplier (e.g. 2.0 for 2x leverage)'),
-      baseCollateral: z.string().describe('Base collateral amount in lovelace'),
+      baseCollateral: z.string().describe('Base ADA collateral amount in lovelace'),
     },
     async ({ address, asset, leverage, baseCollateral }) => {
       try {
@@ -135,33 +37,40 @@ export function registerLeverageCdpTools(server: McpServer): void {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
 
-            const [iAssetResult, cdpCreatorUtxo, collectorUtxo, allLrps] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCdpCreatorUtxo(params, lucid),
-              findCollectorUtxo(params, lucid),
-              findAllLrpUtxos(params, lucid),
-            ]);
+            const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref, allRobs] =
+              await Promise.all([
+                findIAsset(lucid, params, asset),
+                findCollateralAsset(lucid, params, asset),
+                findCdpCreatorOref(lucid, params),
+                findTreasuryOref(lucid, params),
+                findAllRobs(lucid, params, asset),
+              ]);
 
-            if (allLrps.length === 0) {
-              throw new Error('No ROB positions found on-chain');
+            if (allRobs.length === 0) {
+              throw new Error('No ROB positions found on-chain for this iAsset');
+            }
+            if (treasuryOref === undefined) {
+              throw new Error('No ADA-only treasury UTxO available for leverage operation');
             }
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
+            const [priceOracleOref, interestOracleOref] = await Promise.all([
+              findPriceOracleOref(lucid, collateralOut),
+              findInterestOracleOref(lucid, collateralOut),
             ]);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
 
-            return leverageCdpWithLrp(
+            return leverageCdpWithRob(
               leverage,
               BigInt(baseCollateral),
-              priceOracleUtxo,
-              iAssetResult.utxo,
-              cdpCreatorUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
+              priceOracleOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              cdpCreatorOref,
+              interestOracleOref,
+              treasuryOref,
               params,
               lucid,
-              allLrps,
+              allRobs,
               currentSlot
             );
           },

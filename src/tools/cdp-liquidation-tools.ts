@@ -1,99 +1,24 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { LucidEvolution, Network } from '@lucid-evolution/lucid';
-import type { SystemParams, IAssetContent } from '@indigoprotocol/indigo-sdk';
 import { z } from 'zod';
-import {
-  liquidateCdp,
-  redeemCdp,
-  freezeCdp,
-  mergeCdps,
-  fromSystemParamsAsset,
-  assetClassToUnit,
-  createScriptAddress,
-  parseIAssetDatumOrThrow,
-  getInlineDatumOrThrow,
-} from '@indigoprotocol/indigo-sdk';
-import { fromText } from '@lucid-evolution/lucid';
+import { liquidateCdp, redeemCdp, freezeCdp, mergeCdps } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
+import {
+  findIAsset,
+  findCollateralAsset,
+  findInterestOracleOref,
+  findPriceOracleOref,
+  findInterestCollectorOref,
+  findTreasuryOref,
+  findStabilityPool,
+  findGov,
+  toOutRef,
+} from '../utils/v3-finders.js';
 
-function getNetwork(lucid: LucidEvolution): Network {
-  const network = lucid.config().network;
-  if (!network) throw new Error('Lucid network not configured');
-  return network;
-}
-
-async function findIAssetUtxo(
-  asset: string,
-  params: SystemParams,
-  lucid: LucidEvolution
-): Promise<{ utxo: Awaited<ReturnType<typeof lucid.utxoByUnit>>; datum: IAssetContent }> {
-  const iAssetAuthAc = fromSystemParamsAsset(params.cdpParams.iAssetAuthToken);
-  const cdpAddress = createScriptAddress(getNetwork(lucid), params.validatorHashes.cdpHash);
-  const utxos = await lucid.utxosAtWithUnit(cdpAddress, assetClassToUnit(iAssetAuthAc));
-  const assetHex = fromText(asset);
-  for (const utxo of utxos) {
-    try {
-      const datum = parseIAssetDatumOrThrow(getInlineDatumOrThrow(utxo));
-      if (datum.assetName === assetHex) {
-        return { utxo, datum };
-      }
-    } catch {
-      // Skip UTxOs with unparseable datums
-    }
-  }
-  throw new Error(`iAsset UTxO for ${asset} not found`);
-}
-
-async function findPriceOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const priceInfo = iAssetDatum.price as
-    | { Delisted: unknown }
-    | { Oracle: { content: { oracleNft: { currencySymbol: string; tokenName: string } } } };
-  if ('Delisted' in priceInfo) {
-    throw new Error('iAsset is delisted, cannot perform CDP operations');
-  }
-  const oracleNft = priceInfo.Oracle.content.oracleNft;
-  const oracleUnit = oracleNft.currencySymbol + oracleNft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
-
-async function findInterestOracleUtxo(iAssetDatum: IAssetContent, lucid: LucidEvolution) {
-  const nft = iAssetDatum.interestOracleNft;
-  const oracleUnit = nft.currencySymbol + nft.tokenName;
-  return lucid.utxoByUnit(oracleUnit);
-}
-
-async function findCollectorUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.collectorHash);
-  const utxos = await lucid.utxosAt(address);
-  if (utxos.length === 0) {
-    throw new Error('No collector UTxOs found');
-  }
-  return utxos[0];
-}
-
-async function findTreasuryUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.treasuryHash);
-  const utxos = await lucid.utxosAt(address);
-  if (utxos.length === 0) {
-    throw new Error('No treasury UTxOs found');
-  }
-  return utxos[0];
-}
-
-async function findStabilityPoolUtxo(params: SystemParams, lucid: LucidEvolution) {
-  const spTokenAc = fromSystemParamsAsset(params.stabilityPoolParams.stabilityPoolToken);
-  const spAddress = createScriptAddress(
-    getNetwork(lucid),
-    params.validatorHashes.stabilityPoolHash
-  );
-  const utxos = await lucid.utxosAtWithUnit(spAddress, assetClassToUnit(spTokenAc));
-  if (utxos.length === 0) {
-    throw new Error('No stability pool UTxOs found');
-  }
-  return utxos[0];
-}
+const PYTH_UNSUPPORTED =
+  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
+  'Pyth-priced operations are not yet supported by this server.';
 
 export function registerCdpLiquidationTools(server: McpServer): void {
   server.tool(
@@ -111,19 +36,19 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [stabilityPoolUtxo, collectorUtxo, treasuryUtxo] = await Promise.all([
-              findStabilityPoolUtxo(params, lucid),
-              findCollectorUtxo(params, lucid),
-              findTreasuryUtxo(params, lucid),
+            const [stabilityPool, interestCollectorOref, treasuryOref] = await Promise.all([
+              findStabilityPool(lucid, params, asset),
+              findInterestCollectorOref(lucid, params),
+              findTreasuryOref(lucid, params),
             ]);
 
             return liquidateCdp(
-              cdpOutRef,
-              stabilityPoolUtxo,
-              collectorUtxo,
-              treasuryUtxo,
+              cdpOref,
+              toOutRef(stabilityPool.utxo),
+              interestCollectorOref,
+              treasuryOref,
               params,
               lucid
             );
@@ -173,27 +98,33 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iAssetResult, collectorUtxo, treasuryUtxo] = await Promise.all([
-              findIAssetUtxo(asset, params, lucid),
-              findCollectorUtxo(params, lucid),
-              findTreasuryUtxo(params, lucid),
-            ]);
+            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref, gov] =
+              await Promise.all([
+                findIAsset(lucid, params, asset),
+                findCollateralAsset(lucid, params, asset),
+                findInterestCollectorOref(lucid, params),
+                findTreasuryOref(lucid, params),
+                findGov(lucid, params),
+              ]);
 
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
+            const [priceOracleOref, interestOracleOref] = await Promise.all([
+              findPriceOracleOref(lucid, collateralOut),
+              findInterestOracleOref(lucid, collateralOut),
             ]);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
 
             return redeemCdp(
               BigInt(amount),
-              cdpOutRef,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
-              collectorUtxo,
-              treasuryUtxo,
+              cdpOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              priceOracleOref,
+              interestOracleOref,
+              interestCollectorOref,
+              treasuryOref,
+              toOutRef(gov.utxo),
               params,
               lucid,
               currentSlot
@@ -239,20 +170,25 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
-            const cdpOutRef = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const iAssetResult = await findIAssetUtxo(asset, params, lucid);
-
-            const [priceOracleUtxo, interestOracleUtxo] = await Promise.all([
-              findPriceOracleUtxo(iAssetResult.datum, lucid),
-              findInterestOracleUtxo(iAssetResult.datum, lucid),
+            const [iassetOut, collateralOut] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
             ]);
 
+            const [priceOracleOref, interestOracleOref] = await Promise.all([
+              findPriceOracleOref(lucid, collateralOut),
+              findInterestOracleOref(lucid, collateralOut),
+            ]);
+            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+
             return freezeCdp(
-              cdpOutRef,
-              iAssetResult.utxo,
-              priceOracleUtxo,
-              interestOracleUtxo,
+              cdpOref,
+              toOutRef(iassetOut.utxo),
+              toOutRef(collateralOut.utxo),
+              priceOracleOref,
+              interestOracleOref,
               params,
               lucid,
               currentSlot
@@ -303,7 +239,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-
             return mergeCdps(cdpOutRefs, params, lucid);
           },
           {

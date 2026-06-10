@@ -1,8 +1,9 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { distributeAda, findStakingManager } from '@indigoprotocol/indigo-sdk';
+import { distributeAda, findStakingManager } from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
+import { toOutRef } from '../utils/v3-finders.js';
 
 export function registerStakingRewardTools(server: McpServer): void {
   server.tool(
@@ -25,8 +26,8 @@ export function registerStakingRewardTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const stakingManagerOutput = await findStakingManager(params, lucid);
-            return distributeAda(stakingManagerOutput.utxo, collectorTxHashes, params, lucid);
+            const stakingManager = await findStakingManager(params, lucid);
+            return distributeAda(toOutRef(stakingManager.utxo), collectorTxHashes, params, lucid);
           },
           {
             type: 'distribute_staking_rewards',

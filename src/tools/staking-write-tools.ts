@@ -4,8 +4,7 @@ import {
   openStakingPosition,
   adjustStakingPosition,
   closeStakingPosition,
-  findStakingManager,
-} from '@indigoprotocol/indigo-sdk';
+} from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 
@@ -23,8 +22,7 @@ export function registerStakingWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const stakingManagerOutput = await findStakingManager(params, lucid);
-            return openStakingPosition(BigInt(amount), params, lucid, stakingManagerOutput.utxo);
+            return openStakingPosition(BigInt(amount), params, lucid);
           },
           {
             type: 'open_staking_position',
@@ -66,7 +64,6 @@ export function registerStakingWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const stakingManagerOutput = await findStakingManager(params, lucid);
             const positionOutRef = {
               txHash: positionTxHash,
               outputIndex: positionOutputIndex,
@@ -77,8 +74,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               BigInt(amount),
               params,
               lucid,
-              currentSlot,
-              stakingManagerOutput.utxo
+              currentSlot
             );
           },
           {
@@ -123,19 +119,12 @@ export function registerStakingWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const stakingManagerOutput = await findStakingManager(params, lucid);
             const positionOutRef = {
               txHash: positionTxHash,
               outputIndex: positionOutputIndex,
             };
             const currentSlot = lucid.currentSlot();
-            return closeStakingPosition(
-              positionOutRef,
-              params,
-              lucid,
-              currentSlot,
-              stakingManagerOutput.utxo
-            );
+            return closeStakingPosition(positionOutRef, params, lucid, currentSlot);
           },
           {
             type: 'close_staking_position',
