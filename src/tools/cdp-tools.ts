@@ -1,98 +1,87 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { calculateAccruedInterest } from '@indigo-labs/indigo-sdk';
-import type { InterestOracleDatum } from '@indigo-labs/indigo-sdk';
 import { getIndexerClient } from '../utils/indexer-client.js';
 import { AssetParam } from '../utils/validators.js';
 import { extractPaymentCredential } from '../utils/address.js';
 
-// v3 CDP as returned by the indexer.
-//
-// The indexer exposes CDPs via GET /cdps/ (the legacy /loans/ path is gone in
-// v3). The v3 shape replaces the old `minted` field with `mintedAmt` and adds
-// the per-CDP interest-tracking snapshot used by calculateAccruedInterest.
-interface CdpRecord {
+// All iAssets and ADA use 6 decimals on-chain.
+const DECIMALS = 1e6;
+
+// Raw CDP record as returned by the v3 indexer (GET /cdps).
+interface RawCdp {
+  output_hash: string;
+  output_index: number;
   owner: string;
   asset: string;
-  // ADA collateral in lovelace (value held by the UTxO).
-  collateral: number;
-  // Amount of iAsset minted, in the asset's smallest unit.
-  mintedAmt: number;
-  // Minimum collateral ratio required (percentage, e.g. 150 = 150 %).
-  minRatio: number;
-  // v3 interest-tracking snapshot — present on active (non-frozen) CDPs.
-  interestTracking?: {
-    // POSIX ms at which the CDP's interest was last settled on-chain.
-    lastSettled: string | number;
-    // Accumulated unitary interest captured when the CDP was last touched.
-    unitaryInterestSnapshot: string | number;
-  };
+  // Hex `policy.tokenName` of the collateral asset; empty string = ADA.
+  collateral_asset: string;
+  collateralAmount: number;
+  mintedAmount: number;
+  // Accrued interest already expressed in iAsset smallest units (null when freshly settled).
+  interest_iasset_amount: number | null;
+  interest_last_updated: number | null;
+  active_interest_tracking_unitary_interest_snapshot: string | null;
+  active_interest_tracking_last_settled: number | null;
   [key: string]: unknown;
 }
 
-// Asset state as returned by the indexer GET /assets/.
-interface AssetRecord {
-  name: string;
-  price: {
-    // Current ADA price per 1 iAsset (human-readable float).
-    price: number;
-    [key: string]: unknown;
-  };
-  // v3 shape exposes these at the top level (not nested under `interest`).
-  maintenanceRatio?: number;
-  liquidationRatio?: number;
-  // Legacy v2 shape — kept for robustness during the indexer migration.
-  interest?: {
-    ratio: number;
-    minRatio: number;
-    liquidation: number;
-    [key: string]: unknown;
-  };
-  // v3 interest oracle datum cached by the indexer — used by analyze_cdp_health.
-  interestOracle?: {
-    unitaryInterest: string | number;
-    interestRate: string | number;
-    lastUpdated: string | number;
-  };
+// Normalised CDP shape returned by the read tools.
+interface Cdp {
+  txHash: string;
+  outputIndex: number;
+  owner: string;
+  asset: string;
+  collateralAsset: string;
+  collateralAmount: number;
+  mintedAmount: number;
+  accruedInterestIAsset: number;
+  interestLastUpdated: number | null;
+  frozen: boolean;
+}
+
+// Raw asset state from the v3 indexer (GET /assets). Ratio fields are
+// percentages and may be null while the indexer backfills them post-v3.
+interface RawAsset {
+  asset: string;
+  maintenance_ratio_percentage: number | null;
+  liquidation_ratio_percentage: number | null;
   [key: string]: unknown;
 }
 
-// Resolve the maintenance and liquidation ratios from whichever shape the
-// indexer returns.  v3 puts them at the top level; v2 nested them under
-// `interest`.
-function resolveRatios(asset: AssetRecord): {
-  maintenanceRatio: number;
-  liquidationRatio: number;
-} {
-  const maintenanceRatio = asset.maintenanceRatio ?? asset.interest?.minRatio ?? 150;
-  const liquidationRatio = asset.liquidationRatio ?? asset.interest?.liquidation ?? 110;
-  return { maintenanceRatio, liquidationRatio };
+// Price entry from the v3 indexer (GET /asset-prices): the iAsset price
+// denominated in `collateral_asset` (empty string = ADA).
+interface RawAssetPrice {
+  asset: string;
+  collateral_asset: string;
+  price: string;
+  [key: string]: unknown;
 }
 
-// Fetch CDPs from the indexer.  Tries the v3 /cdps/ endpoint first and falls
-// back to the legacy /loans/ endpoint so the tools degrade gracefully if the
-// indexer has not yet migrated to v3.
-async function fetchCdps(): Promise<CdpRecord[]> {
+function normaliseCdp(r: RawCdp): Cdp {
+  return {
+    txHash: r.output_hash,
+    outputIndex: r.output_index,
+    owner: r.owner,
+    asset: r.asset,
+    collateralAsset: r.collateral_asset ?? '',
+    collateralAmount: Number(r.collateralAmount ?? 0),
+    mintedAmount: Number(r.mintedAmount ?? 0),
+    accruedInterestIAsset: Number(r.interest_iasset_amount ?? 0),
+    interestLastUpdated: r.interest_last_updated ?? null,
+    frozen: r.active_interest_tracking_last_settled == null,
+  };
+}
+
+async function fetchCdps(): Promise<Cdp[]> {
   const client = getIndexerClient();
-  try {
-    const res = await client.get('/cdps/');
-    return res.data as CdpRecord[];
-  } catch {
-    const res = await client.get('/loans/');
-    // Normalise legacy shape: rename `minted` → `mintedAmt` so the rest of
-    // the code only has to deal with one field name.
-    const raw = res.data as Array<Record<string, unknown>>;
-    return raw.map((r) => ({
-      ...r,
-      mintedAmt: (r.mintedAmt ?? r.minted ?? 0) as number,
-    })) as CdpRecord[];
-  }
+  const res = await client.get('/cdps');
+  return (res.data as RawCdp[]).map(normaliseCdp);
 }
 
 export function registerCdpTools(server: McpServer): void {
   server.tool(
     'get_all_cdps',
-    'Get all CDPs/loans, optionally filtered by iAsset',
+    'Get all CDPs, optionally filtered by iAsset',
     {
       asset: AssetParam.optional(),
       limit: z.number().min(1).max(500).default(50).optional(),
@@ -136,7 +125,7 @@ export function registerCdpTools(server: McpServer): void {
 
   server.tool(
     'get_cdps_by_owner',
-    'Get all CDPs/loans for a specific owner (accepts payment key hash or bech32 address)',
+    'Get all CDPs for a specific owner (accepts payment key hash or bech32 address)',
     { owner: z.string().describe('Owner payment key hash (56-char hex) or bech32 address') },
     async ({ owner }) => {
       try {
@@ -161,7 +150,7 @@ export function registerCdpTools(server: McpServer): void {
 
   server.tool(
     'get_cdps_by_address',
-    'Get all CDPs/loans for a specific Cardano address',
+    'Get all CDPs for a specific Cardano address',
     {
       address: z.string().describe('Cardano bech32 address (addr1... or addr_test1...)'),
     },
@@ -188,18 +177,20 @@ export function registerCdpTools(server: McpServer): void {
 
   server.tool(
     'analyze_cdp_health',
-    'Analyze health and collateral ratios of CDPs for an owner, accounting for accrued interest',
+    'Analyze collateral ratios and liquidation risk of CDPs for an owner, accounting for accrued interest',
     { owner: z.string().describe('Owner payment key hash (56-char hex) or bech32 address') },
     async ({ owner }) => {
       try {
         const pkh = extractPaymentCredential(owner);
         const client = getIndexerClient();
 
-        const [allCdps, assetsRes] = await Promise.all([fetchCdps(), client.get('/assets/')]);
+        const [allCdps, assetsRes, pricesRes] = await Promise.all([
+          fetchCdps(),
+          client.get('/assets'),
+          client.get('/asset-prices'),
+        ]);
 
-        const assets = assetsRes.data as AssetRecord[];
         const cdps = allCdps.filter((c) => c.owner === pkh);
-
         if (cdps.length === 0) {
           return {
             content: [
@@ -215,85 +206,69 @@ export function registerCdpTools(server: McpServer): void {
           };
         }
 
-        const assetMap = new Map(assets.map((a) => [a.name, a]));
-        const nowMs = BigInt(Date.now());
+        const assetMap = new Map((assetsRes.data as RawAsset[]).map((a) => [a.asset, a]));
+        // Price is keyed by `${asset}|${collateral_asset}` (collateral '' = ADA).
+        const priceMap = new Map(
+          (pricesRes.data as RawAssetPrice[]).map((p) => [`${p.asset}|${p.collateral_asset}`, p])
+        );
 
         const analysis = cdps.map((cdp) => {
+          const priceEntry = priceMap.get(`${cdp.asset}|${cdp.collateralAsset}`);
           const assetInfo = assetMap.get(cdp.asset);
-          if (!assetInfo) {
-            return { ...cdp, error: `Asset ${cdp.asset} not found` };
+
+          const collateral = cdp.collateralAmount / DECIMALS;
+          const mintedTokens = cdp.mintedAmount / DECIMALS;
+          // Effective debt includes accrued interest (already in iAsset units).
+          const effectiveDebtTokens = (cdp.mintedAmount + cdp.accruedInterestIAsset) / DECIMALS;
+
+          const base = {
+            txHash: cdp.txHash,
+            outputIndex: cdp.outputIndex,
+            asset: cdp.asset,
+            collateralAsset: cdp.collateralAsset === '' ? 'ADA' : cdp.collateralAsset,
+            collateral,
+            mintedTokens,
+            accruedInterestTokens: cdp.accruedInterestIAsset / DECIMALS,
+            effectiveDebtTokens,
+            frozen: cdp.frozen,
+          };
+
+          if (!priceEntry) {
+            return {
+              ...base,
+              collateralRatio: null,
+              status: 'unknown',
+              note: `No indexer price for ${cdp.asset} against collateral '${cdp.collateralAsset || 'ADA'}'`,
+            };
           }
 
-          const collateralLovelace = BigInt(Math.round(cdp.collateral));
-          const mintedUnits = BigInt(Math.round(cdp.mintedAmt));
-          const priceAda = assetInfo.price.price;
-          const { maintenanceRatio, liquidationRatio } = resolveRatios(assetInfo);
+          // price = collateral units per 1 iAsset, so debt value (in collateral
+          // units) = effectiveDebtTokens * price.
+          const price = Number(priceEntry.price);
+          const debtValue = effectiveDebtTokens * price;
+          const collateralRatio = debtValue > 0 ? (collateral / debtValue) * 100 : null;
 
-          // Compute accrued interest when the indexer provides the v3 interest
-          // oracle snapshot alongside the CDP's interest-tracking fields.
-          let accruedInterestLovelace = 0n;
-          let effectiveMintedUnits = mintedUnits;
+          const maintenanceRatio = assetInfo?.maintenance_ratio_percentage ?? null;
+          const liquidationRatio = assetInfo?.liquidation_ratio_percentage ?? null;
 
-          const tracking = cdp.interestTracking;
-          const oracle = assetInfo.interestOracle;
-
-          if (tracking && oracle) {
-            try {
-              const interestOracleDatum: InterestOracleDatum = {
-                unitaryInterest: BigInt(oracle.unitaryInterest),
-                interestRate: { getOnChainInt: BigInt(oracle.interestRate) },
-                lastUpdated: BigInt(oracle.lastUpdated),
-              };
-              accruedInterestLovelace = calculateAccruedInterest(
-                nowMs,
-                BigInt(tracking.unitaryInterestSnapshot),
-                mintedUnits,
-                BigInt(tracking.lastSettled),
-                interestOracleDatum
-              );
-              // Effective debt = minted amount + accrued interest expressed as
-              // iAsset units (accrued interest is returned in lovelace so we
-              // convert back using the price: interest_iasset = interest_ada / price_ada).
-              if (priceAda > 0) {
-                const accruedUnits = BigInt(
-                  Math.round((Number(accruedInterestLovelace) / 1e6 / priceAda) * 1e6)
-                );
-                effectiveMintedUnits = mintedUnits + accruedUnits;
-              }
-            } catch {
-              // If the oracle data is malformed, fall back to the raw minted amount.
-            }
-          }
-
-          const collateralAda = Number(collateralLovelace) / 1e6;
-          const effectiveMintedTokens = Number(effectiveMintedUnits) / 1e6;
-          const collateralRatio =
-            effectiveMintedTokens > 0 && priceAda > 0
-              ? (collateralAda / (effectiveMintedTokens * priceAda)) * 100
-              : 0;
-
-          let status: string;
-          if (collateralRatio >= maintenanceRatio * 1.5) {
-            status = 'safe';
-          } else if (collateralRatio >= maintenanceRatio) {
-            status = 'warning';
-          } else if (collateralRatio >= liquidationRatio) {
-            status = 'at-risk';
-          } else {
-            status = 'liquidatable';
+          let status = 'unknown';
+          if (collateralRatio != null && maintenanceRatio != null && liquidationRatio != null) {
+            if (collateralRatio >= maintenanceRatio) status = 'safe';
+            else if (collateralRatio >= liquidationRatio) status = 'at-risk';
+            else status = 'liquidatable';
           }
 
           return {
-            asset: cdp.asset,
-            collateralAda,
-            mintedTokens: Number(mintedUnits) / 1e6,
-            effectiveMintedTokens,
-            accruedInterestLovelace: Number(accruedInterestLovelace),
-            priceAda,
-            collateralRatio: Math.round(collateralRatio * 100) / 100,
+            ...base,
+            priceInCollateral: price,
+            collateralRatio:
+              collateralRatio == null ? null : Math.round(collateralRatio * 100) / 100,
             maintenanceRatio,
             liquidationRatio,
             status,
+            ...(maintenanceRatio == null
+              ? { note: 'Liquidation thresholds not yet published by the indexer for this asset' }
+              : {}),
           };
         });
 

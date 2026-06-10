@@ -1,6 +1,8 @@
 import axios, { type AxiosInstance } from 'axios';
 
-const INDEXER_URL = process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api/v1';
+// Indigo v3 moved the analytics indexer from /api/v1 to /api. Override with the
+// INDEXER_URL env var if pointing at a different deployment.
+const INDEXER_URL = process.env.INDEXER_URL || 'https://analytics.indigoprotocol.io/api';
 
 let instance: AxiosInstance | null = null;
 
