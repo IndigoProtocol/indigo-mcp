@@ -17,6 +17,9 @@ import { registerLeverageCdpTools } from './leverage-cdp-tools.js';
 import { registerRobWriteTools } from './rob-write-tools.js';
 import { registerSpRequestTools } from './sp-request-tools.js';
 import { registerStakingRewardTools } from './staking-reward-tools.js';
+import { registerStableswapTools } from './stableswap-tools.js';
+import { registerOracleTools } from './oracle-tools.js';
+import { registerInterestTools } from './interest-tools.js';
 
 export function registerTools(server: McpServer): void {
   registerAnalyticsTools(server);
@@ -37,4 +40,7 @@ export function registerTools(server: McpServer): void {
   registerStakingTools(server);
   registerStakingRewardTools(server);
   registerStakingWriteTools(server);
+  registerStableswapTools(server);
+  registerOracleTools(server);
+  registerInterestTools(server);
 }
