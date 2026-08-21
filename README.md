@@ -111,10 +111,16 @@ npx @indigoprotocol/indigo-mcp
 
 ### Docker
 
+The image builds the server from source — no prior `pnpm build` needed, and no
+dependency on any external build step:
+
 ```bash
 docker build -t indigo-mcp .
-docker run -i indigo-mcp
+docker run -p 3000:3000 -e BLOCKFROST_API_KEY=your-key indigo-mcp
 ```
+
+It runs the HTTP transport on port 3000 (`MCP_TRANSPORT=http` is baked in), which
+is what the Fly deployment uses.
 
 ### HTTP Transport (Remote)
 
@@ -519,6 +525,29 @@ When connected to an LLM agent, you can ask natural language questions like:
 - "Show me the iUSD redemption queue"
 - "Get a Steelswap estimate for swapping 100 ADA to iUSD"
 - "What are the current DEX yields for iAsset pairs?"
+
+## Distribution
+
+The server is published to three places, and they are not the same artifact.
+
+| Target | Built by | Output | Published by |
+|---|---|---|---|
+| npm — `@indigoprotocol/indigo-mcp` | `scripts/build.sh` | `dist/` | CI, on a `v*` tag |
+| [MCP Registry](https://registry.modelcontextprotocol.io) — `io.github.IndigoProtocol/indigo-mcp` | `server.json` | metadata only | CI, on a `v*` tag (GitHub OIDC — no token) |
+| [Smithery](https://smithery.ai/server/@indigoprotocol/indigo-mcp) | `scripts/smithery-build.sh` | `.smithery/stdio/server.mcpb` | `pnpm smithery:publish`, manually |
+
+The container image (`Dockerfile`) builds from source and is used by Fly and any
+other container host. It does **not** consume `.smithery/` output — that path is
+Smithery-specific.
+
+### Cutting a release
+
+1. Merge the version bump (`package.json`; `SERVER_VERSION` is read from it)
+2. `git tag vX.Y.Z && git push origin vX.Y.Z`
+3. CI publishes to npm, then to the MCP Registry (the registry verifies ownership
+   via the package's `mcpName` field, so npm has to go first)
+4. Verify against the registry, not the workflow: `npm view @indigoprotocol/indigo-mcp version`
+5. `fly deploy` for the hosted HTTP endpoint, and `pnpm smithery:publish` for Smithery
 
 ## Development
 
