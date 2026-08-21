@@ -129,6 +129,12 @@ This starts an HTTP server with:
 - `POST /mcp` — MCP endpoint (Streamable HTTP with SSE)
 - `GET /health` — Health check
 
+Each client gets its own session: `initialize` returns an `Mcp-Session-Id` that
+subsequent requests must send back. A client that restarts can simply
+`initialize` again — existing sessions are unaffected and the server does not
+need restarting. Bind address and port come from `HOST` and `PORT` (`MCP_PORT`
+is accepted as an alias for `PORT`).
+
 ## Configuration
 
 > **Note:** `BLOCKFROST_API_KEY` is required for write operations (transaction building). Read-only tools work without it. Get a free key at [blockfrost.io](https://blockfrost.io/).
@@ -457,7 +463,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool                | Description                                                        | Parameters                          |
 | ------------------- | ----------------------------------------------------------------- | ----------------------------------- |
 | `get_oracle_price`  | On-chain price for an iAsset (OracleNft / Delisted / Pyth)        | `asset`                             |
-| `get_pyth_price`    | Read the Pyth price-feed config for an iAsset                     | `asset`                             |
+| `get_pyth_price`    | Current Pyth price for an iAsset, plus its on-chain feed config   | `asset`                             |
 | `feed_price_oracle` | Feed a new price to an OracleNft-backed price oracle (admin)      | `address`, `oracleTxHash`, price    |
 
 ### Stableswap Tools (v3)
@@ -476,7 +482,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `BLOCKFROST_API_KEY`   | For write ops | —                                            | Blockfrost project ID for transaction building              |
 | `CARDANO_NETWORK`      | No            | `mainnet`                                    | Cardano network: `mainnet`, `preprod`, or `preview`         |
 | `MCP_TRANSPORT`        | No            | `stdio`                                      | Transport mode: `stdio` or `http`                           |
-| `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`)      |
+| `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`); `MCP_PORT` is accepted as an alias |
+| `HOST`                 | No            | `0.0.0.0`                                    | HTTP bind address (only used when `MCP_TRANSPORT=http`); set `127.0.0.1` to bind locally only |
 | `X402_PRIVATE_KEY`     | No            | —                                            | EVM private key (`0x…`) of the payer wallet — enables auto-payment via split flow |
 | `PAYMENT_SERVER`       | No            | `https://mcp.openmm.io`                      | Settlement worker / proxy URL                               |
 | `X402_TESTNET`         | No            | `false`                                      | Use Base Sepolia testnet                                    |
@@ -507,7 +514,7 @@ When connected to an LLM agent, you can ask natural language questions like:
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js >= 20 (the bundled `undici` requires the `File` global, added in Node 20)
 - npm
 
 ### Setup
