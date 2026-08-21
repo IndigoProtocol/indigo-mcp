@@ -6,7 +6,7 @@ primary_region = 'iad'
 [env]
   MCP_TRANSPORT = 'http'
   PORT = '3000'
-  INDEXER_URL = 'https://analytics.indigoprotocol.io/api/v1'
+  INDEXER_URL = 'https://analytics.indigoprotocol.io/api'
   CARDANO_NETWORK = 'mainnet'
 
 [http_service]
