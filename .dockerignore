@@ -1,0 +1,21 @@
+# Keep the build context small — it is uploaded to the builder on every deploy.
+# Everything the image needs is built from source inside the Dockerfile.
+node_modules
+dist
+.smithery
+.git
+.github
+.claude
+coverage
+
+# Local binaries and packed tarballs
+indigo-mcp-*
+*.tgz
+
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
