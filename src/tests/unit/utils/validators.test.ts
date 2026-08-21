@@ -18,6 +18,10 @@ describe('AssetParam validator', () => {
     expect(AssetParam.parse('iSOL')).toBe('iSOL');
   });
 
+  it('should accept iADA', () => {
+    expect(AssetParam.parse('iADA')).toBe('iADA');
+  });
+
   it('should reject invalid asset names', () => {
     expect(() => AssetParam.parse('invalid')).toThrow();
   });

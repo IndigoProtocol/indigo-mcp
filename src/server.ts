@@ -10,7 +10,8 @@ import { registerResources } from './resources/index.js';
 import { applyPaymentGate } from './payment.js';
 
 const SERVER_NAME = 'indigo-mcp';
-const SERVER_VERSION = '0.2.0';
+// Kept in step with package.json; clients read this from `initialize`.
+const SERVER_VERSION = '0.3.0';
 
 export function createServer(): McpServer {
   const server = new McpServer({

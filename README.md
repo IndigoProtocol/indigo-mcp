@@ -313,8 +313,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool              | Description                                          | Parameters                         |
 | ----------------- | ---------------------------------------------------- | ---------------------------------- |
 | `get_assets`      | Get all Indigo iAssets with prices and interest data | None                               |
-| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
-| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
+| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA |
+| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA |
 | `get_ada_price`   | Get the current ADA price in USD                     | None                               |
 | `get_indy_price`  | Get the current INDY token price in ADA and USD      | None                               |
 
@@ -329,9 +329,19 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 ### CDP Write Tools
 
+> **Pyth-priced iAssets have a submission deadline.** Every iAsset is currently
+> priced through Pyth, and the on-chain feed validator only accepts a transaction
+> for **280 seconds** after the price update it embeds. Price-dependent write
+> tools (`open_cdp`, `withdraw_cdp`, `mint_cdp`, `redeem_cdp`, `freeze_cdp`,
+> `leverage_cdp`, `redeem_rob`) therefore return a `summary.pyth` block with the
+> price, its timestamp and a `submitBefore` deadline. If signing takes longer
+> than that — a hardware wallet, or a human approving in a browser — rebuild the
+> transaction rather than submitting a stale one. A price update that has already
+> expired is rejected at build time with a retry hint.
+
 | Tool           | Description                                        | Parameters                                                                                                                      |
 | -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
+| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
 | `deposit_cdp`  | Deposit additional collateral into a CDP           | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `withdraw_cdp` | Withdraw collateral from a CDP                     | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `close_cdp`    | Close a CDP and reclaim collateral                 | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                       |
@@ -340,8 +350,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool       | Description                                                   | Parameters                                                                                                                                                                      |
 | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
-| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
 
 ### CDP Liquidation & Redemption Tools
 
@@ -363,7 +373,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool                          | Description                                                         | Parameters                                                |
 | ----------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
 | `get_stability_pools`         | Get the latest stability pool state for each iAsset                 | None                                                      |
-| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                       |
+| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA                       |
 | `get_sp_account_by_owner`     | Get stability pool accounts for specific owners                     | `owners`: array of payment key hashes or bech32 addresses |
 
 ### Staking Tools
@@ -420,7 +430,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | ----------------------- | --------------------------------------------- | --------------------------------------------------------------- |
 | `get_order_book`        | Get open ROB (redemption order book) positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
 | `get_redemption_orders` | Get executed redemption orders                | `asset?`: iAsset filter; `limit?`: max records (default 100)    |
-| `get_redemption_queue`  | Get open ROB order-book entries for an iAsset | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                  |
+| `get_redemption_queue`  | Get open ROB order-book entries for an iAsset | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA                  |
 
 ### ROB Write Tools
 
