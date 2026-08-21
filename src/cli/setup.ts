@@ -63,7 +63,7 @@ function getIndigoServerConfig(): ServerConfig {
       args: ['-y', '@indigoprotocol/indigo-mcp'],
       env: {
         PATH: `${nodePath}:/usr/local/bin:/usr/bin:/bin`,
-        INDEXER_URL: 'https://analytics.indigoprotocol.io/api/v1',
+        INDEXER_URL: 'https://analytics.indigoprotocol.io/api',
         BLOCKFROST_API_KEY: '',
       },
     };
@@ -74,7 +74,7 @@ function getIndigoServerConfig(): ServerConfig {
     command: 'npx',
     args: ['-y', '@indigoprotocol/indigo-mcp'],
     env: {
-      INDEXER_URL: 'https://analytics.indigoprotocol.io/api/v1',
+      INDEXER_URL: 'https://analytics.indigoprotocol.io/api',
       BLOCKFROST_API_KEY: '',
     },
   };
