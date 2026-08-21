@@ -4,3 +4,12 @@ export { extractPaymentCredential } from './address.js';
 export { getLucid, getLucidNetwork, resetLucid } from './lucid-provider.js';
 export { getSystemParams, resetSystemParamsCache } from './sdk-config.js';
 export { buildUnsignedTx } from './tx-builder.js';
+export {
+  fetchPythPriceFeed,
+  fetchPythStateOref,
+  assertPythFeedFresh,
+  resolvePriceSource,
+  pythSummary,
+  PYTH_MAX_DELAY_MS,
+  DEFAULT_COLLATERAL,
+} from './pyth.js';

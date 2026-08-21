@@ -1,5 +1,5 @@
 import type { LucidEvolution, TxBuilder } from '@lucid-evolution/lucid';
-import type { UnsignedTxResult, TxSummary } from '../types/tx-types.js';
+import type { UnsignedTxResult, TxSummary, PythPricingSummary } from '../types/tx-types.js';
 import { getLucid } from './lucid-provider.js';
 
 /**
@@ -7,6 +7,15 @@ import { getLucid } from './lucid-provider.js';
  * See: https://cips.cardano.org/cip/CIP-20
  */
 const CIP20_METADATA_LABEL = 674;
+
+/**
+ * Scratch space handed to a build function so it can report pricing details
+ * that are only known once the transaction has been assembled.
+ */
+export interface TxBuildContext {
+  /** Set when the transaction is priced via a signed Pyth message. */
+  pyth?: PythPricingSummary;
+}
 
 /**
  * Build CIP-20 metadata message lines from a TxSummary.
@@ -19,7 +28,7 @@ function buildCip20Message(summary: TxSummary): string[] {
 
 export async function buildUnsignedTx(
   address: string,
-  buildFn: (lucid: LucidEvolution) => Promise<TxBuilder>,
+  buildFn: (lucid: LucidEvolution, ctx: TxBuildContext) => Promise<TxBuilder>,
   summary: TxSummary
 ): Promise<UnsignedTxResult> {
   const lucid = await getLucid();
@@ -27,7 +36,8 @@ export async function buildUnsignedTx(
   const utxos = await lucid.utxosAt(address);
   lucid.selectWallet.fromAddress(address, utxos);
 
-  const txBuilder = await buildFn(lucid);
+  const ctx: TxBuildContext = {};
+  const txBuilder = await buildFn(lucid, ctx);
 
   txBuilder.attachMetadata(CIP20_METADATA_LABEL, {
     msg: buildCip20Message(summary),
@@ -39,6 +49,6 @@ export async function buildUnsignedTx(
     unsignedTx: tx.toCBOR(),
     txHash: tx.toHash(),
     fee: tx.toTransaction().body().fee().toString(),
-    summary,
+    summary: ctx.pyth ? { ...summary, pyth: ctx.pyth } : summary,
   };
 }

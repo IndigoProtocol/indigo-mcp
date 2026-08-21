@@ -8,15 +8,11 @@ import {
   findIAsset,
   findCollateralAsset,
   findInterestOracleOref,
-  findPriceOracleOref,
   findInterestCollectorOref,
   findTreasuryOref,
   toOutRef,
 } from '../utils/v3-finders.js';
-
-const PYTH_UNSUPPORTED =
-  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
-  'Pyth-priced operations are not yet supported by this server.';
+import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
 
 export function registerCdpMintBurnTools(server: McpServer): void {
   server.tool(
@@ -33,7 +29,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
       try {
         const result = await buildUnsignedTx(
           address,
-          async (lucid) => {
+          async (lucid, ctx) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
@@ -46,24 +42,26 @@ export function registerCdpMintBurnTools(server: McpServer): void {
                 findTreasuryOref(lucid, params),
               ]);
 
-            const [priceOracleOref, interestOracleOref] = await Promise.all([
-              findPriceOracleOref(lucid, collateralOut),
+            const [priceSource, interestOracleOref] = await Promise.all([
+              resolvePriceSource(lucid, collateralOut, asset),
               findInterestOracleOref(lucid, collateralOut),
             ]);
-            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+            ctx.pyth = pythSummary(priceSource);
 
             return mintCdp(
               BigInt(amount),
               cdpOref,
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
-              priceOracleOref,
+              priceSource.priceOracleOref,
               interestOracleOref,
               treasuryOref,
               interestCollectorOref,
               params,
               lucid,
-              currentSlot
+              currentSlot,
+              priceSource.pythMessage,
+              priceSource.pythStateOref
             );
           },
           {

@@ -9,15 +9,11 @@ import {
   findCollateralAsset,
   findCdpCreatorOref,
   findInterestOracleOref,
-  findPriceOracleOref,
   findInterestCollectorOref,
   findTreasuryOref,
   toOutRef,
 } from '../utils/v3-finders.js';
-
-const PYTH_UNSUPPORTED =
-  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
-  'Pyth-priced operations are not yet supported by this server.';
+import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
 
 export function registerCdpWriteTools(server: McpServer): void {
   server.tool(
@@ -33,7 +29,7 @@ export function registerCdpWriteTools(server: McpServer): void {
       try {
         const result = await buildUnsignedTx(
           address,
-          async (lucid) => {
+          async (lucid, ctx) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
 
@@ -44,11 +40,11 @@ export function registerCdpWriteTools(server: McpServer): void {
               findTreasuryOref(lucid, params),
             ]);
 
-            const [priceOracleOref, interestOracleOref] = await Promise.all([
-              findPriceOracleOref(lucid, collateralOut),
+            const [priceSource, interestOracleOref] = await Promise.all([
+              resolvePriceSource(lucid, collateralOut, asset),
               findInterestOracleOref(lucid, collateralOut),
             ]);
-            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+            ctx.pyth = pythSummary(priceSource);
 
             return openCdp(
               BigInt(collateralAmount),
@@ -57,11 +53,13 @@ export function registerCdpWriteTools(server: McpServer): void {
               cdpCreatorOref,
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
-              priceOracleOref,
+              priceSource.priceOracleOref,
               interestOracleOref,
               treasuryOref,
               lucid,
-              currentSlot
+              currentSlot,
+              priceSource.pythMessage,
+              priceSource.pythStateOref
             );
           },
           {
@@ -168,7 +166,7 @@ export function registerCdpWriteTools(server: McpServer): void {
       try {
         const result = await buildUnsignedTx(
           address,
-          async (lucid) => {
+          async (lucid, ctx) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
@@ -181,24 +179,26 @@ export function registerCdpWriteTools(server: McpServer): void {
                 findTreasuryOref(lucid, params),
               ]);
 
-            const [priceOracleOref, interestOracleOref] = await Promise.all([
-              findPriceOracleOref(lucid, collateralOut),
+            const [priceSource, interestOracleOref] = await Promise.all([
+              resolvePriceSource(lucid, collateralOut, asset),
               findInterestOracleOref(lucid, collateralOut),
             ]);
-            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+            ctx.pyth = pythSummary(priceSource);
 
             return withdrawCdp(
               BigInt(amount),
               cdpOref,
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
-              priceOracleOref,
+              priceSource.priceOracleOref,
               interestOracleOref,
               treasuryOref,
               interestCollectorOref,
               params,
               lucid,
-              currentSlot
+              currentSlot,
+              priceSource.pythMessage,
+              priceSource.pythStateOref
             );
           },
           {

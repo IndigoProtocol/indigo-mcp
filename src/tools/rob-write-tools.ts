@@ -4,17 +4,8 @@ import { openRob, cancelRob, adjustRob, claimRob, redeemRob } from '@indigo-labs
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import {
-  ADA_COLLATERAL,
-  findIAsset,
-  findCollateralAsset,
-  findPriceOracleOref,
-  toOutRef,
-} from '../utils/v3-finders.js';
-
-const PYTH_UNSUPPORTED =
-  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
-  'Pyth-priced operations are not yet supported by this server.';
+import { ADA_COLLATERAL, findIAsset, findCollateralAsset, toOutRef } from '../utils/v3-finders.js';
+import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
 
 export function registerRobWriteTools(server: McpServer): void {
   server.tool(
@@ -251,7 +242,7 @@ export function registerRobWriteTools(server: McpServer): void {
       try {
         const result = await buildUnsignedTx(
           address,
-          async (lucid) => {
+          async (lucid, ctx) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
 
@@ -259,8 +250,8 @@ export function registerRobWriteTools(server: McpServer): void {
               findIAsset(lucid, params, asset),
               findCollateralAsset(lucid, params, asset),
             ]);
-            const priceOracleOref = await findPriceOracleOref(lucid, collateralOut);
-            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+            const priceSource = await resolvePriceSource(lucid, collateralOut, asset);
+            ctx.pyth = pythSummary(priceSource);
 
             const redemptionRobsData: [{ txHash: string; outputIndex: number }, bigint][] =
               redemptionRobs.map((rob) => [
@@ -270,12 +261,14 @@ export function registerRobWriteTools(server: McpServer): void {
 
             return redeemRob(
               redemptionRobsData,
-              priceOracleOref,
+              priceSource.priceOracleOref,
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
               lucid,
               params,
-              currentSlot
+              currentSlot,
+              priceSource.pythMessage,
+              priceSource.pythStateOref
             );
           },
           {
