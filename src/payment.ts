@@ -10,7 +10,7 @@ export function applyPaymentGate(server: McpServer): void {
   const workerUrl =
     process.env.PAYMENT_SERVER ?? process.env.X402_FACILITATOR_URL ?? 'https://mcp.openmm.io';
 
-  wrapWithSplitPayment(server as any, {
+  wrapWithSplitPayment(server, {
     privateKey,
     workerUrl,
     testnet: process.env.X402_TESTNET === 'true',

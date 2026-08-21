@@ -189,7 +189,7 @@ async function main(): Promise<void> {
     }
 
     // Check for existing indigo config
-    const existingServers = config.mcpServers as Record<string, any>;
+    const existingServers = config.mcpServers as Record<string, Partial<ServerConfig>>;
     const existingIndigo = existingServers['indigo'];
     const existingKey = existingIndigo?.env?.BLOCKFROST_API_KEY;
 
