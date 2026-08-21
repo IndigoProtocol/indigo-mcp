@@ -8,10 +8,12 @@ import { randomUUID } from 'node:crypto';
 import { registerTools } from './tools/index.js';
 import { registerResources } from './resources/index.js';
 import { applyPaymentGate } from './payment.js';
+import packageJson from '../package.json' with { type: 'json' };
 
 const SERVER_NAME = 'indigo-mcp';
-// Kept in step with package.json; clients read this from `initialize`.
-const SERVER_VERSION = '0.3.0';
+// Read from package.json so `initialize` and /health cannot drift from the
+// published version, as they had (advertising 0.2.0 against a 0.3.0 package).
+const SERVER_VERSION = packageJson.version;
 
 export function createServer(): McpServer {
   const server = new McpServer({
