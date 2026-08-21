@@ -9,15 +9,11 @@ import {
   findCollateralAsset,
   findCdpCreatorOref,
   findInterestOracleOref,
-  findPriceOracleOref,
   findTreasuryOref,
   findAllRobs,
   toOutRef,
 } from '../utils/v3-finders.js';
-
-const PYTH_UNSUPPORTED =
-  'This iAsset is priced via Pyth, which requires a signed Pyth price message. ' +
-  'Pyth-priced operations are not yet supported by this server.';
+import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
 
 export function registerLeverageCdpTools(server: McpServer): void {
   server.tool(
@@ -33,7 +29,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
       try {
         const result = await buildUnsignedTx(
           address,
-          async (lucid) => {
+          async (lucid, ctx) => {
             const params = await getSystemParams();
             const currentSlot = lucid.currentSlot();
 
@@ -53,16 +49,16 @@ export function registerLeverageCdpTools(server: McpServer): void {
               throw new Error('No ADA-only treasury UTxO available for leverage operation');
             }
 
-            const [priceOracleOref, interestOracleOref] = await Promise.all([
-              findPriceOracleOref(lucid, collateralOut),
+            const [priceSource, interestOracleOref] = await Promise.all([
+              resolvePriceSource(lucid, collateralOut, asset),
               findInterestOracleOref(lucid, collateralOut),
             ]);
-            if (priceOracleOref === undefined) throw new Error(PYTH_UNSUPPORTED);
+            ctx.pyth = pythSummary(priceSource);
 
             return leverageCdpWithRob(
               leverage,
               BigInt(baseCollateral),
-              priceOracleOref,
+              priceSource.priceOracleOref,
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
               cdpCreatorOref,
@@ -71,7 +67,9 @@ export function registerLeverageCdpTools(server: McpServer): void {
               params,
               lucid,
               allRobs,
-              currentSlot
+              currentSlot,
+              priceSource.pythMessage,
+              priceSource.pythStateOref
             );
           },
           {

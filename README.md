@@ -129,6 +129,12 @@ This starts an HTTP server with:
 - `POST /mcp` — MCP endpoint (Streamable HTTP with SSE)
 - `GET /health` — Health check
 
+Each client gets its own session: `initialize` returns an `Mcp-Session-Id` that
+subsequent requests must send back. A client that restarts can simply
+`initialize` again — existing sessions are unaffected and the server does not
+need restarting. Bind address and port come from `HOST` and `PORT` (`MCP_PORT`
+is accepted as an alias for `PORT`).
+
 ## Configuration
 
 > **Note:** `BLOCKFROST_API_KEY` is required for write operations (transaction building). Read-only tools work without it. Get a free key at [blockfrost.io](https://blockfrost.io/).
@@ -307,8 +313,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool              | Description                                          | Parameters                         |
 | ----------------- | ---------------------------------------------------- | ---------------------------------- |
 | `get_assets`      | Get all Indigo iAssets with prices and interest data | None                               |
-| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
-| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY |
+| `get_asset`       | Get details for a specific iAsset                    | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA |
+| `get_asset_price` | Get the current price for a specific iAsset          | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA |
 | `get_ada_price`   | Get the current ADA price in USD                     | None                               |
 | `get_indy_price`  | Get the current INDY token price in ADA and USD      | None                               |
 
@@ -323,9 +329,19 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 ### CDP Write Tools
 
+> **Pyth-priced iAssets have a submission deadline.** Every iAsset is currently
+> priced through Pyth, and the on-chain feed validator only accepts a transaction
+> for **280 seconds** after the price update it embeds. Price-dependent write
+> tools (`open_cdp`, `withdraw_cdp`, `mint_cdp`, `redeem_cdp`, `freeze_cdp`,
+> `leverage_cdp`, `redeem_rob`) therefore return a `summary.pyth` block with the
+> price, its timestamp and a `submitBefore` deadline. If signing takes longer
+> than that — a hardware wallet, or a human approving in a browser — rebuild the
+> transaction rather than submitting a stale one. A price update that has already
+> expired is rejected at build time with a retry hint.
+
 | Tool           | Description                                        | Parameters                                                                                                                      |
 | -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
+| `open_cdp`     | Open a new CDP position (returns unsigned CBOR tx) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `collateralAmount`: lovelace; `mintAmount`: iAsset smallest unit |
 | `deposit_cdp`  | Deposit additional collateral into a CDP           | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `withdraw_cdp` | Withdraw collateral from a CDP                     | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index; `amount`: lovelace   |
 | `close_cdp`    | Close a CDP and reclaim collateral                 | `address`: bech32 address; `asset`: iAsset; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: output index                       |
@@ -334,8 +350,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 
 | Tool       | Description                                                   | Parameters                                                                                                                                                                      |
 | ---------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
-| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `mint_cdp` | Mint additional iAssets from an existing CDP (increases debt) | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
+| `burn_cdp` | Burn iAssets to reduce CDP debt                               | `address`: bech32 address; `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA; `cdpTxHash`: CDP UTxO tx hash; `cdpOutputIndex`: CDP UTxO output index; `amount`: iAsset amount in smallest unit |
 
 ### CDP Liquidation & Redemption Tools
 
@@ -357,7 +373,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool                          | Description                                                         | Parameters                                                |
 | ----------------------------- | ------------------------------------------------------------------- | --------------------------------------------------------- |
 | `get_stability_pools`         | Get the latest stability pool state for each iAsset                 | None                                                      |
-| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                       |
+| `get_stability_pool_accounts` | Get all open stability pool accounts, optionally filtered by iAsset | `asset?`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA                       |
 | `get_sp_account_by_owner`     | Get stability pool accounts for specific owners                     | `owners`: array of payment key hashes or bech32 addresses |
 
 ### Staking Tools
@@ -414,7 +430,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | ----------------------- | --------------------------------------------- | --------------------------------------------------------------- |
 | `get_order_book`        | Get open ROB (redemption order book) positions | `asset?`: iAsset filter; `owners?`: array of payment key hashes |
 | `get_redemption_orders` | Get executed redemption orders                | `asset?`: iAsset filter; `limit?`: max records (default 100)    |
-| `get_redemption_queue`  | Get open ROB order-book entries for an iAsset | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, or iJPY                  |
+| `get_redemption_queue`  | Get open ROB order-book entries for an iAsset | `asset`: iUSD, iBTC, iETH, iSOL, iEUR, iJPY, or iADA                  |
 
 ### ROB Write Tools
 
@@ -457,7 +473,7 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | Tool                | Description                                                        | Parameters                          |
 | ------------------- | ----------------------------------------------------------------- | ----------------------------------- |
 | `get_oracle_price`  | On-chain price for an iAsset (OracleNft / Delisted / Pyth)        | `asset`                             |
-| `get_pyth_price`    | Read the Pyth price-feed config for an iAsset                     | `asset`                             |
+| `get_pyth_price`    | Current Pyth price for an iAsset, plus its on-chain feed config   | `asset`                             |
 | `feed_price_oracle` | Feed a new price to an OracleNft-backed price oracle (admin)      | `address`, `oracleTxHash`, price    |
 
 ### Stableswap Tools (v3)
@@ -476,7 +492,8 @@ For any client that supports MCP over stdio, point it to the `npx @indigoprotoco
 | `BLOCKFROST_API_KEY`   | For write ops | —                                            | Blockfrost project ID for transaction building              |
 | `CARDANO_NETWORK`      | No            | `mainnet`                                    | Cardano network: `mainnet`, `preprod`, or `preview`         |
 | `MCP_TRANSPORT`        | No            | `stdio`                                      | Transport mode: `stdio` or `http`                           |
-| `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`)      |
+| `PORT`                 | No            | `3000`                                       | HTTP server port (only used when `MCP_TRANSPORT=http`); `MCP_PORT` is accepted as an alias |
+| `HOST`                 | No            | `0.0.0.0`                                    | HTTP bind address (only used when `MCP_TRANSPORT=http`); set `127.0.0.1` to bind locally only |
 | `X402_PRIVATE_KEY`     | No            | —                                            | EVM private key (`0x…`) of the payer wallet — enables auto-payment via split flow |
 | `PAYMENT_SERVER`       | No            | `https://mcp.openmm.io`                      | Settlement worker / proxy URL                               |
 | `X402_TESTNET`         | No            | `false`                                      | Use Base Sepolia testnet                                    |
@@ -507,7 +524,7 @@ When connected to an LLM agent, you can ask natural language questions like:
 
 ### Prerequisites
 
-- Node.js >= 18
+- Node.js >= 20 (the bundled `undici` requires the `File` global, added in Node 20)
 - npm
 
 ### Setup

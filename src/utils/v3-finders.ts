@@ -33,7 +33,7 @@ import {
  *
  * In Indigo v3 the price and interest oracle references no longer live on the
  * iAsset datum — they sit on the per-collateral-asset datum, and prices may be
- * served by Pyth. The protocol's transaction builders also take {@link OutRef}s
+ * served by Pyth (see `utils/pyth.ts`). The protocol's transaction builders also take {@link OutRef}s
  * rather than full UTxOs. These helpers mirror the canonical query patterns used
  * by the indigo-sdk-v3 acceptance tests.
  */
@@ -124,8 +124,9 @@ export async function findInterestOracleOref(
  * Resolve the price oracle OutRef for a collateral asset.
  * - `OracleNft`: returns the oracle UTxO's OutRef.
  * - `Delisted`: throws — the asset cannot be used as collateral.
- * - Pyth (`DeferredValidation`): returns `undefined`. Pyth-priced operations
- *   require a signed Pyth message, which is not yet produced by this server.
+ * - Pyth (`DeferredValidation`): returns `undefined` — the price comes from a
+ *   signed Pyth message instead. Use {@link resolvePriceSource} from
+ *   `utils/pyth.ts`, which handles both cases.
  */
 export async function findPriceOracleOref(
   lucid: LucidEvolution,

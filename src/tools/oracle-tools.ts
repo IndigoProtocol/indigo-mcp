@@ -15,6 +15,7 @@ import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
 import { ADA_COLLATERAL, findCollateralAsset, findPriceOracleOref } from '../utils/v3-finders.js';
+import { fetchPythPriceFeed, PYTH_MAX_DELAY_MS } from '../utils/pyth.js';
 import { getLucid } from '../utils/lucid-provider.js';
 
 export function registerOracleTools(server: McpServer): void {
@@ -110,12 +111,9 @@ export function registerOracleTools(server: McpServer): void {
 
   server.tool(
     'get_pyth_price',
-    'Best-effort read of the Pyth price feed config for an iAsset. ' +
-      'Reads the on-chain Pyth state UTxO and returns feed configuration derived from system params. ' +
-      'NOTE: Pyth price values are not readable from the on-chain Pyth state datum alone — ' +
-      'the actual latest price must be fetched from the Pyth Lazer off-chain API and pushed ' +
-      'on-chain via a signed PythMessage. This tool surfaces the feed config so callers can ' +
-      'identify the correct Pyth feed ID to query externally.',
+    'Get the current Pyth price for an iAsset, together with its on-chain feed configuration. ' +
+      'The price is the latest signed Pyth update served by the Indigo analytics API — the same ' +
+      'payload the CDP write tools embed on-chain — and is only valid on-chain until validUntil.',
     { asset: AssetParam },
     async ({ asset }) => {
       try {
@@ -234,18 +232,35 @@ export function registerOracleTools(server: McpServer): void {
 }
 
 /**
- * Shared implementation for Pyth price info lookup. Reads the Pyth state UTxO
- * from the chain (via the pythStateAssetClass in system params) and returns
- * the feed config for the asset.
+ * Shared implementation for Pyth price lookup.
  *
- * Limitation: the on-chain Pyth state datum holds governance / trusted-signer
- * configuration, not the latest price values. The live price must be fetched
- * from the Pyth Lazer off-chain API (identified by the feedId returned here).
+ * The live price is not readable from the on-chain Pyth state datum — that
+ * holds governance / trusted-signer configuration only. The current signed
+ * price update comes from the Indigo analytics API, which serves the same
+ * payload the transaction builders embed on-chain; the feed config and Pyth
+ * state datum are read from the chain alongside it for context.
  */
 async function getPythPriceForAsset(asset: string): Promise<Record<string, unknown>> {
   const lucid = await getLucid();
   const params = await getSystemParams();
   const pythConfig = params.pythConfig;
+
+  // Live price update, straight from the feed the tx builders use.
+  let livePrice: Record<string, unknown> | undefined;
+  try {
+    const feed = await fetchPythPriceFeed(asset);
+    livePrice = {
+      price: feed.price,
+      priceTimestamp: new Date(feed.timestampMs).toISOString(),
+      validUntil: new Date(feed.validUntilMs).toISOString(),
+      stale: Date.now() > feed.validUntilMs,
+    };
+  } catch (error) {
+    // Non-fatal: still return the on-chain feed configuration below.
+    livePrice = {
+      error: `Could not fetch the live Pyth price: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
 
   // Resolve iasset bytes for getPythFeedConfig key lookup.
   const iassetBytes = fromText(asset);
@@ -257,6 +272,7 @@ async function getPythPriceForAsset(asset: string): Promise<Record<string, unkno
     feedConfig = getPythFeedConfig(pythConfig, iassetUint8, ADA_COLLATERAL);
   } catch {
     return {
+      ...livePrice,
       note: `No Pyth feed config found for ${asset}. The asset may not be priced via Pyth, or the key lookup failed.`,
       pythStateAssetClass: pythConfig.pythStateAssetClass,
     };
@@ -278,14 +294,16 @@ async function getPythPriceForAsset(asset: string): Promise<Record<string, unkno
   }
 
   return {
+    ...livePrice,
     feedConfig: {
       pythFeedValHash: feedConfig.pythFeedValHash,
       feedParams: feedConfig.params,
     },
     pythState: pythStateDatum,
     note:
-      'Live Pyth price values are not stored in the on-chain state datum. ' +
-      'To read the latest price, query the Pyth Lazer API using the feedId in feedParams.config ' +
-      'and push the signed PythMessage on-chain via the Pyth feed validator.',
+      'The price is the latest signed Pyth update served by the Indigo analytics API — the same ' +
+      'payload the write tools embed on-chain. It is only valid on-chain until validUntil ' +
+      `(${PYTH_MAX_DELAY_MS / 1_000}s after priceTimestamp); the on-chain Pyth state datum itself ` +
+      'carries governance and trusted-signer configuration, not price values.',
   };
 }
