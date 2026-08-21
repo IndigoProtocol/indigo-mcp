@@ -7,6 +7,7 @@ export { buildUnsignedTx } from './tx-builder.js';
 export {
   fetchPythPriceFeed,
   fetchPythStateOref,
+  resolvePythStateOref,
   assertPythFeedFresh,
   resolvePriceSource,
   pythSummary,

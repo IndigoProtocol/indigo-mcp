@@ -8,11 +8,28 @@ vi.mock('../../../utils/v3-finders.js', () => ({
   findPriceOracleOref: vi.fn(),
 }));
 
+vi.mock('../../../utils/sdk-config.js', () => ({
+  getSystemParams: vi.fn(),
+}));
+
+// Keep the SDK (and its libsodium/WASM dependencies) out of a unit test; only
+// the asset-class-to-unit conversion is used here.
+vi.mock('@indigo-labs/indigo-sdk', () => ({
+  fromSystemParamsAsset: (asset: { unCurrencySymbol: string; unTokenName: string }) => asset,
+}));
+
+vi.mock('@3rd-eye-labs/cardano-offchain-common', () => ({
+  assetClassToUnit: (asset: { unCurrencySymbol: string; unTokenName: string }) =>
+    `${asset.unCurrencySymbol}${asset.unTokenName}`,
+}));
+
 import { getIndexerClient } from '../../../utils/indexer-client.js';
 import { findPriceOracleOref } from '../../../utils/v3-finders.js';
+import { getSystemParams } from '../../../utils/sdk-config.js';
 import {
   fetchPythPriceFeed,
   fetchPythStateOref,
+  resolvePythStateOref,
   assertPythFeedFresh,
   resolvePriceSource,
   pythSummary,
@@ -100,6 +117,51 @@ describe('pyth helpers', () => {
     it('throws when the API returns no state UTxO', async () => {
       mockGet.mockResolvedValueOnce({ data: {} });
       await expect(fetchPythStateOref()).rejects.toThrow(/did not return a Pyth state UTxO/);
+    });
+  });
+
+  describe('resolvePythStateOref', () => {
+    // The state UTxO is whichever UTxO holds the pythStateAssetClass NFT, so
+    // the chain can answer when the analytics API cannot.
+    const pythStateAssetClass = {
+      unCurrencySymbol: 'c935c937d0deda8975142c7b77aeef8f8cd48791e89a8ca7a0edc154',
+      unTokenName: 'Pyth State',
+    };
+    const lucid = { utxoByUnit: vi.fn() };
+
+    beforeEach(() => {
+      lucid.utxoByUnit.mockReset();
+      vi.mocked(getSystemParams).mockResolvedValue({
+        pythConfig: { pythStateAssetClass },
+      } as never);
+    });
+
+    it('prefers the analytics API and does not touch the chain', async () => {
+      await expect(resolvePythStateOref(lucid as never)).resolves.toEqual({
+        txHash: stateResponse.data.outputHash,
+        outputIndex: 0,
+      });
+      expect(lucid.utxoByUnit).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the on-chain Pyth state NFT when the API fails', async () => {
+      mockGet.mockRejectedValueOnce(new Error('503 Service Unavailable'));
+      lucid.utxoByUnit.mockResolvedValue({ txHash: 'on-chain-hash', outputIndex: 2 });
+
+      await expect(resolvePythStateOref(lucid as never)).resolves.toEqual({
+        txHash: 'on-chain-hash',
+        outputIndex: 2,
+      });
+      expect(lucid.utxoByUnit).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports both failures when neither source can answer', async () => {
+      mockGet.mockRejectedValueOnce(new Error('503 Service Unavailable'));
+      lucid.utxoByUnit.mockRejectedValue(new Error('no utxo found'));
+
+      await expect(resolvePythStateOref(lucid as never)).rejects.toThrow(
+        /503 Service Unavailable.*no utxo found/s
+      );
     });
   });
 

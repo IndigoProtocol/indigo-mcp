@@ -1,7 +1,10 @@
 import type { LucidEvolution, OutRef } from '@lucid-evolution/lucid';
 import type { CollateralAssetOutput } from '@indigo-labs/indigo-sdk';
+import { fromSystemParamsAsset } from '@indigo-labs/indigo-sdk';
+import { assetClassToUnit } from '@3rd-eye-labs/cardano-offchain-common';
 import type { PythPricingSummary } from '../types/tx-types.js';
 import { getIndexerClient } from './indexer-client.js';
+import { getSystemParams } from './sdk-config.js';
 import { findPriceOracleOref } from './v3-finders.js';
 
 /**
@@ -136,6 +139,33 @@ export async function fetchPythStateOref(): Promise<OutRef> {
 }
 
 /**
+ * Resolve the Pyth state OutRef, preferring the analytics API and falling back
+ * to the chain.
+ *
+ * The state UTxO is simply whichever UTxO holds the `pythStateAssetClass` NFT
+ * named in system params — the query the indigo-sdk acceptance tests use — so
+ * an analytics outage need not block transaction building.
+ */
+export async function resolvePythStateOref(lucid: LucidEvolution): Promise<OutRef> {
+  try {
+    return await fetchPythStateOref();
+  } catch (apiError) {
+    try {
+      const params = await getSystemParams();
+      const unit = assetClassToUnit(fromSystemParamsAsset(params.pythConfig.pythStateAssetClass));
+      const utxo = await lucid.utxoByUnit(unit);
+      return { txHash: utxo.txHash, outputIndex: utxo.outputIndex };
+    } catch (chainError) {
+      throw new Error(
+        'Could not resolve the Pyth state UTxO from the analytics API ' +
+          `(${apiError instanceof Error ? apiError.message : String(apiError)}) ` +
+          `or from the chain (${chainError instanceof Error ? chainError.message : String(chainError)})`
+      );
+    }
+  }
+}
+
+/**
  * Resolve everything a transaction builder needs to price an (iAsset,
  * collateral) pair, whichever oracle the asset uses.
  *
@@ -163,7 +193,7 @@ export async function resolvePriceSource(
 
   const [pythFeed, pythStateOref] = await Promise.all([
     fetchPythPriceFeed(asset, collateral),
-    fetchPythStateOref(),
+    resolvePythStateOref(lucid),
   ]);
   assertPythFeedFresh(pythFeed, asset, collateral);
 
