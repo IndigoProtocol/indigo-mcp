@@ -31,7 +31,6 @@ export function registerCdpWriteTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref] = await Promise.all([
               findIAsset(lucid, params, asset),
@@ -57,7 +56,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               interestOracleOref,
               treasuryOref,
               lucid,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );
@@ -102,7 +100,6 @@ export function registerCdpWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
@@ -124,8 +121,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               treasuryOref,
               interestCollectorOref,
               params,
-              lucid,
-              currentSlot
+              lucid
             );
           },
           {
@@ -168,7 +164,6 @@ export function registerCdpWriteTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
@@ -196,7 +191,6 @@ export function registerCdpWriteTools(server: McpServer): void {
               interestCollectorOref,
               params,
               lucid,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );
@@ -240,7 +234,6 @@ export function registerCdpWriteTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [collateralOut, interestCollectorOref] = await Promise.all([
@@ -256,8 +249,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               interestOracleOref,
               interestCollectorOref,
               params,
-              lucid,
-              currentSlot
+              lucid
             );
           },
           {

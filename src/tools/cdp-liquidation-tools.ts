@@ -93,7 +93,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut, interestCollectorOref, treasuryOref, gov] =
@@ -123,7 +122,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               toOutRef(gov.utxo),
               params,
               lucid,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );
@@ -167,7 +165,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut] = await Promise.all([
@@ -189,7 +186,6 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               interestOracleOref,
               params,
               lucid,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );

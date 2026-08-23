@@ -68,14 +68,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               txHash: positionTxHash,
               outputIndex: positionOutputIndex,
             };
-            const currentSlot = lucid.currentSlot();
-            return adjustStakingPosition(
-              positionOutRef,
-              BigInt(amount),
-              params,
-              lucid,
-              currentSlot
-            );
+            return adjustStakingPosition(positionOutRef, BigInt(amount), params, lucid);
           },
           {
             type: 'adjust_staking_position',
@@ -123,8 +116,7 @@ export function registerStakingWriteTools(server: McpServer): void {
               txHash: positionTxHash,
               outputIndex: positionOutputIndex,
             };
-            const currentSlot = lucid.currentSlot();
-            return closeStakingPosition(positionOutRef, params, lucid, currentSlot);
+            return closeStakingPosition(positionOutRef, params, lucid);
           },
           {
             type: 'close_staking_position',

@@ -31,7 +31,6 @@ export function registerLeverageCdpTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref, allRobs] =
               await Promise.all([
@@ -67,7 +66,6 @@ export function registerLeverageCdpTools(server: McpServer): void {
               params,
               lucid,
               allRobs,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );
