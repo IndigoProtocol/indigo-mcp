@@ -9,7 +9,7 @@ import {
   findCollateralAsset,
   findCdpCreatorOref,
   findInterestOracleOref,
-  findTreasuryOref,
+  findTreasuryOrefForAsset,
   findAllRobs,
   toOutRef,
 } from '../utils/v3-finders.js';
@@ -32,20 +32,29 @@ export function registerLeverageCdpTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
 
-            const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref, allRobs] =
-              await Promise.all([
-                findIAsset(lucid, params, asset),
-                findCollateralAsset(lucid, params, asset),
-                findCdpCreatorOref(lucid, params),
-                findTreasuryOref(lucid, params),
-                findAllRobs(lucid, params, asset),
-              ]);
+            const [iassetOut, collateralOut, cdpCreatorOref, allRobs] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findCdpCreatorOref(lucid, params),
+              findAllRobs(lucid, params, asset),
+            ]);
 
             if (allRobs.length === 0) {
-              throw new Error('No ROB positions found on-chain for this iAsset');
+              throw new Error(
+                `No open ROB positions for ${asset}. A leveraged CDP mints ${asset} and ` +
+                  'immediately redeems it against existing order-book positions, so at least ' +
+                  'one has to be live.'
+              );
             }
+
+            // The fee is paid in the minted iAsset, so the treasury input has to
+            // be one that already holds it.
+            const iassetUnit =
+              params.cdpParams.cdpAssetSymbol.unCurrencySymbol +
+              Buffer.from(iassetOut.datum.assetName).toString('hex');
+            const treasuryOref = await findTreasuryOrefForAsset(lucid, iassetUnit);
             if (treasuryOref === undefined) {
-              throw new Error('No ADA-only treasury UTxO available for leverage operation');
+              throw new Error(`No treasury UTxO currently holds ${asset} to receive the fee`);
             }
 
             const [priceSource, interestOracleOref] = await Promise.all([
