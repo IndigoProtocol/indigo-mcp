@@ -63,7 +63,6 @@ export function registerInterestTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const collateralOut = await findCollateralAsset(lucid, params, asset);
             const [collateralAssetOref, interestOracleOref, interestCollectorOref] =
@@ -84,8 +83,7 @@ export function registerInterestTools(server: McpServer): void {
               interestOracleOref,
               cdpOutRefs,
               params,
-              lucid,
-              currentSlot
+              lucid
             );
           },
           {
@@ -217,7 +215,6 @@ export function registerInterestTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const collateralOut = await findCollateralAsset(lucid, params, asset);
             const interestOracleNft = collateralOut.datum.interestOracleNft;
@@ -231,7 +228,6 @@ export function registerInterestTools(server: McpServer): void {
               oracleParams,
               BigInt(newInterestRate),
               lucid,
-              currentSlot,
               interestOracleNft
             );
           },

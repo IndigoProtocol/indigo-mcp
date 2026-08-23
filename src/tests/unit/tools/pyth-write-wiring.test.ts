@@ -130,42 +130,42 @@ const CASES = [
     tool: 'open_cdp',
     args: { address: ADDRESS, asset: 'iUSD', collateralAmount: '100000000', mintAmount: '1000000' },
     builder: 'openCdp',
-    pythIndex: 11,
+    pythIndex: 10,
     priceOracleIndex: 6,
   },
   {
     tool: 'withdraw_cdp',
     args: { address: ADDRESS, asset: 'iUSD', ...CDP, amount: '5000000' },
     builder: 'withdrawCdp',
-    pythIndex: 11,
+    pythIndex: 10,
     priceOracleIndex: 4,
   },
   {
     tool: 'mint_cdp',
     args: { address: ADDRESS, asset: 'iUSD', ...CDP, amount: '1000000' },
     builder: 'mintCdp',
-    pythIndex: 11,
+    pythIndex: 10,
     priceOracleIndex: 4,
   },
   {
     tool: 'redeem_cdp',
     args: { address: ADDRESS, asset: 'iUSD', ...CDP, amount: '1000000' },
     builder: 'redeemCdp',
-    pythIndex: 12,
+    pythIndex: 11,
     priceOracleIndex: 4,
   },
   {
     tool: 'freeze_cdp',
     args: { address: ADDRESS, asset: 'iUSD', ...CDP },
     builder: 'freezeCdp',
-    pythIndex: 8,
+    pythIndex: 7,
     priceOracleIndex: 3,
   },
   {
     tool: 'leverage_cdp',
     args: { address: ADDRESS, asset: 'iUSD', leverage: 2, baseCollateral: '100000000' },
     builder: 'leverageCdpWithRob',
-    pythIndex: 12,
+    pythIndex: 11,
     priceOracleIndex: 2,
   },
   {
@@ -176,7 +176,7 @@ const CASES = [
       redemptionRobs: [{ txHash: 'rob', outputIndex: 0, amount: '1000000' }],
     },
     builder: 'redeemRob',
-    pythIndex: 7,
+    pythIndex: 6,
     priceOracleIndex: 1,
   },
 ] as const;
@@ -234,7 +234,7 @@ describe('Pyth arguments reach the SDK transaction builders', () => {
     expect(result.isError).toBeFalsy();
     const depositCdp = vi.mocked(sdk.depositCdp as (...args: unknown[]) => unknown);
     expect(depositCdp).toHaveBeenCalledTimes(1);
-    // depositCdp has no price dependency: 10 args, no Pyth tail.
-    expect(depositCdp.mock.calls[0]).toHaveLength(10);
+    // depositCdp has no price dependency: 9 args, no Pyth tail.
+    expect(depositCdp.mock.calls[0]).toHaveLength(9);
   });
 });

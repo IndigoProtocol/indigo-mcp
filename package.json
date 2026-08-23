@@ -51,8 +51,8 @@
   },
   "devDependencies": {
     "@3rd-eye-labs/cardano-offchain-common": "^1.2.0",
-    "@indigo-labs/indigo-sdk": "^0.3.28",
-    "@lucid-evolution/lucid": "^0.4.29",
+    "@indigo-labs/indigo-sdk": "^0.5.9",
+    "@lucid-evolution/lucid": "^0.6.1",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "@qbtlabs/x402": "^0.5.0",
     "@types/node": "^24.3.1",
@@ -74,5 +74,10 @@
     "libsodium-sumo": "^0.7.16",
     "libsodium-wrappers-sumo": "^0.7.16",
     "undici": "^7.24.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@lucid-evolution/uplc": ">=0.2.22"
+    }
   }
 }

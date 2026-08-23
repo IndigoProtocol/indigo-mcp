@@ -24,7 +24,6 @@ export function registerSpRequestTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const [accountUtxo] = await lucid.utxosByOutRef([
               { txHash: accountTxHash, outputIndex: accountOutputIndex },
@@ -43,8 +42,7 @@ export function registerSpRequestTools(server: McpServer): void {
               iassetOut.utxo,
               e2s2sSnapshotOrefs,
               params,
-              lucid,
-              currentSlot
+              lucid
             );
           },
           {

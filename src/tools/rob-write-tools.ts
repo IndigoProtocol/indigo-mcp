@@ -244,7 +244,6 @@ export function registerRobWriteTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const [iassetOut, collateralOut] = await Promise.all([
               findIAsset(lucid, params, asset),
@@ -266,7 +265,6 @@ export function registerRobWriteTools(server: McpServer): void {
               toOutRef(collateralOut.utxo),
               lucid,
               params,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );

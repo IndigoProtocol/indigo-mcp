@@ -157,7 +157,6 @@ export function registerOracleTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
 
             const collateralOut = await findCollateralAsset(lucid, params, asset);
 
@@ -204,7 +203,7 @@ export function registerOracleTools(server: McpServer): void {
               denominator: BigInt(priceDenominator),
             };
 
-            return feedPriceOracleTx(lucid, oracleOref, newPrice, oracleParams, currentSlot);
+            return feedPriceOracleTx(lucid, oracleOref, newPrice, oracleParams);
           },
           {
             type: 'feed_price_oracle',

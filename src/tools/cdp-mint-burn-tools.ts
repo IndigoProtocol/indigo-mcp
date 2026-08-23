@@ -31,7 +31,6 @@ export function registerCdpMintBurnTools(server: McpServer): void {
           address,
           async (lucid, ctx) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
@@ -59,7 +58,6 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               interestCollectorOref,
               params,
               lucid,
-              currentSlot,
               priceSource.pythMessage,
               priceSource.pythStateOref
             );
@@ -104,7 +102,6 @@ export function registerCdpMintBurnTools(server: McpServer): void {
           address,
           async (lucid) => {
             const params = await getSystemParams();
-            const currentSlot = lucid.currentSlot();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
             const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
@@ -126,8 +123,7 @@ export function registerCdpMintBurnTools(server: McpServer): void {
               treasuryOref,
               interestCollectorOref,
               params,
-              lucid,
-              currentSlot
+              lucid
             );
           },
           {
