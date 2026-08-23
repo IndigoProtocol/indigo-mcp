@@ -74,5 +74,10 @@
     "libsodium-sumo": "^0.7.16",
     "libsodium-wrappers-sumo": "^0.7.16",
     "undici": "^7.24.5"
+  },
+  "pnpm": {
+    "overrides": {
+      "@lucid-evolution/uplc": ">=0.2.22"
+    }
   }
 }

@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@lucid-evolution/uplc': '>=0.2.22'
+
 importers:
 
   .:
@@ -583,8 +586,8 @@ packages:
   '@lucid-evolution/sign_data@0.1.25':
     resolution: {integrity: sha512-ZDDl3SyO3Lf+/ji9u0Fg6I9oNs+tW//aHkgz4NlS+9xbx2bT9YU+mV9ZLLjWSZVGTb0TbzT4NGvVqdgRNspdYQ==}
 
-  '@lucid-evolution/uplc@0.2.20':
-    resolution: {integrity: sha512-+40qeHmjMnM4Sjdq9JAf190a1t3TMbV1vegVLQGqt2AouOkIunZfziBZwuaqcgUVVbynW+j2Qx2ijK83Pap4XQ==}
+  '@lucid-evolution/uplc@0.2.22':
+    resolution: {integrity: sha512-Xqh+Z6XKE8w9UC5wTQr5wNoKJi1AG6cymuBJaK3mJI0tq592Bu2dapSuxGLko3KReExrzh+Z4AR1HIHBPbwQPw==}
 
   '@lucid-evolution/utils@0.1.66':
     resolution: {integrity: sha512-sp6vsxrc0u9rYgb4ExRP4LRQM0oK6mVxqt70axK0T4DSS06KYtCqUWX6kjcOHY8jxDGfjK5RLh9hBY+Gul4OSQ==}
@@ -3244,7 +3247,7 @@ snapshots:
       '@lucid-evolution/plutus': 0.1.29
       '@lucid-evolution/provider': 0.1.90(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.6.6)(@harmoniclabs/crypto@0.3.0)(@harmoniclabs/pair@1.0.0)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@lucid-evolution/sign_data': 0.1.25
-      '@lucid-evolution/uplc': 0.2.20
+      '@lucid-evolution/uplc': 0.2.22
       '@lucid-evolution/utils': 0.1.66(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.6.6)(@harmoniclabs/crypto@0.3.0)(@harmoniclabs/pair@1.0.0)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@lucid-evolution/wallet': 0.1.72(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.6.6)(@harmoniclabs/crypto@0.3.0)(@harmoniclabs/pair@1.0.0)(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       effect: 3.19.19
@@ -3305,7 +3308,7 @@ snapshots:
       '@lucid-evolution/core-types': 0.1.22
       '@lucid-evolution/core-utils': 0.1.16
 
-  '@lucid-evolution/uplc@0.2.20': {}
+  '@lucid-evolution/uplc@0.2.22': {}
 
   '@lucid-evolution/utils@0.1.66(@harmoniclabs/bytestring@1.0.0)(@harmoniclabs/cbor@1.6.6)(@harmoniclabs/crypto@0.3.0)(@harmoniclabs/pair@1.0.0)(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
@@ -3319,7 +3322,7 @@ snapshots:
       '@lucid-evolution/core-utils': 0.1.16
       '@lucid-evolution/crc8': 0.1.8
       '@lucid-evolution/plutus': 0.1.29
-      '@lucid-evolution/uplc': 0.2.20
+      '@lucid-evolution/uplc': 0.2.22
       bip39: 3.1.0
       cbor-x: 1.6.4
       effect: 3.19.19
