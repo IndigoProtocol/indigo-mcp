@@ -32,7 +32,12 @@ vi.mock('@indigo-labs/indigo-sdk', () =>
 );
 
 vi.mock('../../../utils/sdk-config.js', () => ({
-  getSystemParams: vi.fn(() => Promise.resolve({ params: true })),
+  getSystemParams: vi.fn(() =>
+    Promise.resolve({
+      params: true,
+      cdpParams: { cdpAssetSymbol: { unCurrencySymbol: 'aa'.repeat(28) } },
+    })
+  ),
 }));
 
 const utxo = (txHash: string) => ({ txHash, outputIndex: 0 });
@@ -44,12 +49,18 @@ vi.mock('../../../utils/v3-finders.js', () => ({
     txHash: u.txHash,
     outputIndex: u.outputIndex,
   }),
-  findIAsset: vi.fn(() => Promise.resolve({ utxo: utxo('iasset'), datum: {} })),
+  findIAsset: vi.fn(() =>
+    Promise.resolve({
+      utxo: utxo('iasset'),
+      datum: { assetName: new Uint8Array([0x69, 0x55, 0x53, 0x44]) },
+    })
+  ),
   findCollateralAsset: vi.fn(() => Promise.resolve({ utxo: utxo('collateral'), datum: {} })),
   findCdpCreatorOref: vi.fn(() => Promise.resolve(oref('cdp-creator'))),
   findInterestOracleOref: vi.fn(() => Promise.resolve(oref('interest-oracle'))),
   findInterestCollectorOref: vi.fn(() => Promise.resolve(oref('interest-collector'))),
   findTreasuryOref: vi.fn(() => Promise.resolve(oref('treasury'))),
+  findTreasuryOrefForAsset: vi.fn(() => Promise.resolve(oref('treasury'))),
   findGov: vi.fn(() => Promise.resolve({ utxo: utxo('gov'), datum: {} })),
   findStabilityPool: vi.fn(() => Promise.resolve({ utxo: utxo('stability-pool'), datum: {} })),
   findAllRobs: vi.fn(() => Promise.resolve([[utxo('rob'), {}]])),

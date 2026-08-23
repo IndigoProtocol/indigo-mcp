@@ -20,6 +20,7 @@ import {
   parseSnapshotEpochToScaleToSumDatumOrThrow,
   mkStabilityPoolAddr,
 } from '@indigo-labs/indigo-sdk';
+import { getIndexerClient } from './indexer-client.js';
 import type { AssetClass } from '@3rd-eye-labs/cardano-offchain-common';
 import {
   adaAssetClass,
@@ -178,6 +179,18 @@ export async function findInterestCollectorOref(
 /**
  * Find a treasury OutRef holding only ADA, suitable as a fee-collecting input.
  * Returns `undefined` when no ADA-only treasury UTxO is available.
+ *
+ * In practice this returns `undefined` on mainnet: treasury UTxOs carry the
+ * collected iAssets, and they live at the treasury address *with* its staking
+ * credential rather than the enterprise address built here. That is deliberate
+ * for the CDP tools — `undefined` selects the SDK's direct-payment branch, which
+ * pays the fee into a fresh treasury output and is verified working for every
+ * iAsset. Do not "fix" this into returning an oref without re-testing every CDP
+ * write tool: spending the treasury is a different code path, and the treasury
+ * validator rejects an input that would gain a new asset class.
+ *
+ * {@link findTreasuryOrefForAsset} is the resolver for the paths that genuinely
+ * need to spend the treasury.
  */
 export async function findTreasuryOref(
   lucid: LucidEvolution,
@@ -189,6 +202,53 @@ export async function findTreasuryOref(
     (utxo) => Object.keys(utxo.assets).length === 1 && utxo.assets.lovelace !== undefined
   );
   return adaOnly ? toOutRef(adaOnly) : undefined;
+}
+
+/**
+ * Find a treasury OutRef able to receive a fee in `iassetUnit`.
+ *
+ * Resolved through the indexer for the same reason as {@link findAllRobs}: the
+ * live treasury UTxOs sit at the treasury address with its staking credential,
+ * not the enterprise address.
+ *
+ * The treasury validator caps the continuing output at two asset classes
+ * ("Too many asset classes"), so a candidate only works if it already holds the
+ * iAsset alongside lovelace, or holds lovelace alone. That is what the ADA-only
+ * filter in {@link findTreasuryOref} was reaching for — the rule is right, it
+ * was just looking at the wrong address.
+ *
+ * Returns `undefined` when nothing qualifies, letting the caller decide whether
+ * that is fatal.
+ */
+export async function findTreasuryOrefForAsset(
+  lucid: LucidEvolution,
+  iassetUnit: string
+): Promise<OutRef | undefined> {
+  // Ask the indexer for a single treasury UTxO purely to learn the address it
+  // sits at — the staking credential is not derivable from system params — then
+  // read the whole set from the chain. Resolving all ~350 orefs individually
+  // would be far more provider traffic for the same answer.
+  const client = getIndexerClient();
+  const response = await client.post('/v3/treasury/utxos', { length: 1 });
+  const entries = response.data as Array<{ outputHash: string; outputIndex: number }>;
+  if (entries.length === 0) return undefined;
+
+  const seed = await lucid.utxosByOutRef([
+    { txHash: entries[0].outputHash, outputIndex: entries[0].outputIndex },
+  ]);
+  if (seed.length === 0) return undefined;
+
+  const utxos = await lucid.utxosAt(seed[0].address);
+  const candidates = utxos.filter((utxo) => {
+    const units = new Set(Object.keys(utxo.assets));
+    units.add(iassetUnit);
+    return units.size <= 2;
+  });
+  // Prefer one that already holds the iAsset: it is the shape every treasury
+  // spend on-chain uses, and it leaves the output's min-ADA untouched.
+  candidates.sort((a, b) => Number((b.assets[iassetUnit] ?? 0n) - (a.assets[iassetUnit] ?? 0n)));
+
+  return candidates.length > 0 ? toOutRef(candidates[0]) : undefined;
 }
 
 /** Find the stability pool state UTxO for a given iAsset. */
@@ -233,24 +293,39 @@ export async function findGov(
   throw new Error('Governance UTxO not found');
 }
 
-/** Find all ROB position UTxOs for a given iAsset, paired with their parsed datums. */
+/**
+ * Find all ROB position UTxOs for a given iAsset, paired with their parsed datums.
+ *
+ * Resolved through the indexer rather than by scanning a script address. ROB
+ * positions carry the owner's staking credential, so they are spread across as
+ * many addresses as there are owners, and they hold no auth token to look them
+ * up by — an address scan finds nothing.
+ */
 export async function findAllRobs(
   lucid: LucidEvolution,
-  params: SystemParams,
+  _params: SystemParams,
   assetName: string
 ): Promise<[UTxO, RobDatum][]> {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.robHash);
-  const utxos = await lucid.utxosAt(address);
-  const wantHex = fromText(assetName);
+  const client = getIndexerClient();
+  const response = await client.get('/v3/order-book');
+  const entries = response.data as Array<{
+    iasset: string;
+    outputHash: string;
+    outputIndex: number;
+  }>;
+
+  const orefs = entries
+    .filter((entry) => entry.iasset === assetName)
+    .map((entry) => ({ txHash: entry.outputHash, outputIndex: entry.outputIndex }));
+  if (orefs.length === 0) return [];
+
+  const utxos = await lucid.utxosByOutRef(orefs);
   const result: [UTxO, RobDatum][] = [];
   for (const utxo of utxos) {
     try {
-      const datum = parseRobDatumOrThrow(getInlineDatumOrThrow(utxo));
-      if (toHex(datum.iasset) === wantHex) {
-        result.push([utxo, datum]);
-      }
+      result.push([utxo, parseRobDatumOrThrow(getInlineDatumOrThrow(utxo))]);
     } catch {
-      // Skip non-ROB datums.
+      // Skip anything the indexer listed that no longer parses as a ROB datum.
     }
   }
   return result;
