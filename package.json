@@ -1,6 +1,6 @@
 {
   "name": "@indigoprotocol/indigo-mcp",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "description": "MCP server for Indigo Protocol",
   "main": "dist/index.js",
@@ -50,9 +50,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@3rd-eye-labs/cardano-offchain-common": "^1.2.0",
-    "@indigo-labs/indigo-sdk": "^0.5.9",
-    "@lucid-evolution/lucid": "^0.6.1",
+    "@indigo-labs/cardano-offchain-common": "1.5.2",
+    "@indigo-labs/indigo-sdk": "0.5.13",
+    "@lucid-evolution/lucid": "0.6.2",
     "@modelcontextprotocol/sdk": "^1.18.0",
     "@qbtlabs/x402": "^0.5.0",
     "@types/node": "^24.3.1",
@@ -69,15 +69,5 @@
     "typescript": "^5.9.2",
     "vitest": "^4.0.18",
     "zod": "^3.25.76"
-  },
-  "dependencies": {
-    "libsodium-sumo": "^0.7.16",
-    "libsodium-wrappers-sumo": "^0.7.16",
-    "undici": "^7.24.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "@lucid-evolution/uplc": ">=0.2.22"
-    }
   }
 }

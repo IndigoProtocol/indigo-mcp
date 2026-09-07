@@ -9,7 +9,7 @@ import {
   getInlineDatumOrThrow,
   fromSystemParamsAsset,
 } from '@indigo-labs/indigo-sdk';
-import { assetClassToUnit } from '@3rd-eye-labs/cardano-offchain-common';
+import { assetClassToUnit } from '@indigo-labs/cardano-offchain-common';
 import { fromText } from '@lucid-evolution/lucid';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';

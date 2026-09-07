@@ -20,13 +20,13 @@ import {
   parseSnapshotEpochToScaleToSumDatumOrThrow,
   mkStabilityPoolAddr,
 } from '@indigo-labs/indigo-sdk';
-import type { AssetClass } from '@3rd-eye-labs/cardano-offchain-common';
+import type { AssetClass } from '@indigo-labs/cardano-offchain-common';
 import {
   adaAssetClass,
   assetClassToUnit,
   isSameAssetClass,
   assetClassValueOf,
-} from '@3rd-eye-labs/cardano-offchain-common';
+} from '@indigo-labs/cardano-offchain-common';
 
 /**
  * v3 on-chain finder helpers.
@@ -173,22 +173,6 @@ export async function findInterestCollectorOref(
   const nonAdmin = utxos.filter((utxo) => assetClassValueOf(utxo.assets, multisigNft) === 0n);
   if (nonAdmin.length === 0) throw new Error('No non-admin interest collector UTxO found');
   return toOutRef(nonAdmin[0]);
-}
-
-/**
- * Find a treasury OutRef holding only ADA, suitable as a fee-collecting input.
- * Returns `undefined` when no ADA-only treasury UTxO is available.
- */
-export async function findTreasuryOref(
-  lucid: LucidEvolution,
-  params: SystemParams
-): Promise<OutRef | undefined> {
-  const address = createScriptAddress(getNetwork(lucid), params.validatorHashes.treasuryHash);
-  const utxos = await lucid.utxosAt(address);
-  const adaOnly = utxos.find(
-    (utxo) => Object.keys(utxo.assets).length === 1 && utxo.assets.lovelace !== undefined
-  );
-  return adaOnly ? toOutRef(adaOnly) : undefined;
 }
 
 /** Find the stability pool state UTxO for a given iAsset. */

@@ -18,7 +18,7 @@ vi.mock('@indigo-labs/indigo-sdk', () => ({
   fromSystemParamsAsset: (asset: { unCurrencySymbol: string; unTokenName: string }) => asset,
 }));
 
-vi.mock('@3rd-eye-labs/cardano-offchain-common', () => ({
+vi.mock('@indigo-labs/cardano-offchain-common', () => ({
   assetClassToUnit: (asset: { unCurrencySymbol: string; unTokenName: string }) =>
     `${asset.unCurrencySymbol}${asset.unTokenName}`,
 }));

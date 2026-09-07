@@ -1,7 +1,7 @@
 import type { LucidEvolution, OutRef } from '@lucid-evolution/lucid';
 import type { CollateralAssetOutput } from '@indigo-labs/indigo-sdk';
 import { fromSystemParamsAsset } from '@indigo-labs/indigo-sdk';
-import { assetClassToUnit } from '@3rd-eye-labs/cardano-offchain-common';
+import { assetClassToUnit } from '@indigo-labs/cardano-offchain-common';
 import type { PythPricingSummary } from '../types/tx-types.js';
 import { getIndexerClient } from './indexer-client.js';
 import { getSystemParams } from './sdk-config.js';
