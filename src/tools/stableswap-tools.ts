@@ -11,8 +11,8 @@ import {
   createScriptAddress,
   fromSystemParamsAsset,
 } from '@indigo-labs/indigo-sdk';
-import { assetClassToUnit, isSameAssetClass } from '@3rd-eye-labs/cardano-offchain-common';
-import type { AssetClass } from '@3rd-eye-labs/cardano-offchain-common';
+import { assetClassToUnit, isSameAssetClass } from '@indigo-labs/cardano-offchain-common';
+import type { AssetClass } from '@indigo-labs/cardano-offchain-common';
 import { getLucid } from '../utils/lucid-provider.js';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';

@@ -11,7 +11,7 @@ import {
   createScriptAddress,
 } from '@indigo-labs/indigo-sdk';
 import type { SystemParams } from '@indigo-labs/indigo-sdk';
-import { assetClassValueOf, assetClassToUnit } from '@3rd-eye-labs/cardano-offchain-common';
+import { assetClassValueOf, assetClassToUnit } from '@indigo-labs/cardano-offchain-common';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';

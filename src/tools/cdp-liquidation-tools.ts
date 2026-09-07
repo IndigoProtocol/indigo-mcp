@@ -9,7 +9,6 @@ import {
   findCollateralAsset,
   findInterestOracleOref,
   findInterestCollectorOref,
-  findTreasuryOref,
   findStabilityPool,
   findGov,
   toOutRef,
@@ -34,17 +33,16 @@ export function registerCdpLiquidationTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [stabilityPool, interestCollectorOref, treasuryOref] = await Promise.all([
+            const [stabilityPool, interestCollectorOref] = await Promise.all([
               findStabilityPool(lucid, params, asset),
               findInterestCollectorOref(lucid, params),
-              findTreasuryOref(lucid, params),
             ]);
 
             return liquidateCdp(
               cdpOref,
               toOutRef(stabilityPool.utxo),
               interestCollectorOref,
-              treasuryOref,
+              undefined,
               params,
               lucid
             );
@@ -95,14 +93,12 @@ export function registerCdpLiquidationTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref, gov] =
-              await Promise.all([
-                findIAsset(lucid, params, asset),
-                findCollateralAsset(lucid, params, asset),
-                findInterestCollectorOref(lucid, params),
-                findTreasuryOref(lucid, params),
-                findGov(lucid, params),
-              ]);
+            const [iassetOut, collateralOut, interestCollectorOref, gov] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findInterestCollectorOref(lucid, params),
+              findGov(lucid, params),
+            ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
               resolvePriceSource(lucid, collateralOut, asset),
@@ -118,7 +114,7 @@ export function registerCdpLiquidationTools(server: McpServer): void {
               priceSource.priceOracleOref,
               interestOracleOref,
               interestCollectorOref,
-              treasuryOref,
+              undefined,
               toOutRef(gov.utxo),
               params,
               lucid,

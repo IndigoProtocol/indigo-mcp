@@ -10,7 +10,6 @@ import {
   findCdpCreatorOref,
   findInterestOracleOref,
   findInterestCollectorOref,
-  findTreasuryOref,
   toOutRef,
 } from '../utils/v3-finders.js';
 import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
@@ -32,11 +31,10 @@ export function registerCdpWriteTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
 
-            const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref] = await Promise.all([
+            const [iassetOut, collateralOut, cdpCreatorOref] = await Promise.all([
               findIAsset(lucid, params, asset),
               findCollateralAsset(lucid, params, asset),
               findCdpCreatorOref(lucid, params),
-              findTreasuryOref(lucid, params),
             ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
@@ -54,7 +52,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               toOutRef(collateralOut.utxo),
               priceSource.priceOracleOref,
               interestOracleOref,
-              treasuryOref,
+              undefined,
               lucid,
               priceSource.pythMessage,
               priceSource.pythStateOref
@@ -102,13 +100,11 @@ export function registerCdpWriteTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
-              await Promise.all([
-                findIAsset(lucid, params, asset),
-                findCollateralAsset(lucid, params, asset),
-                findInterestCollectorOref(lucid, params),
-                findTreasuryOref(lucid, params),
-              ]);
+            const [iassetOut, collateralOut, interestCollectorOref] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findInterestCollectorOref(lucid, params),
+            ]);
 
             const interestOracleOref = await findInterestOracleOref(lucid, collateralOut);
 
@@ -118,7 +114,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               toOutRef(iassetOut.utxo),
               toOutRef(collateralOut.utxo),
               interestOracleOref,
-              treasuryOref,
+              undefined,
               interestCollectorOref,
               params,
               lucid
@@ -166,13 +162,11 @@ export function registerCdpWriteTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
-            const [iassetOut, collateralOut, interestCollectorOref, treasuryOref] =
-              await Promise.all([
-                findIAsset(lucid, params, asset),
-                findCollateralAsset(lucid, params, asset),
-                findInterestCollectorOref(lucid, params),
-                findTreasuryOref(lucid, params),
-              ]);
+            const [iassetOut, collateralOut, interestCollectorOref] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findInterestCollectorOref(lucid, params),
+            ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
               resolvePriceSource(lucid, collateralOut, asset),
@@ -187,7 +181,7 @@ export function registerCdpWriteTools(server: McpServer): void {
               toOutRef(collateralOut.utxo),
               priceSource.priceOracleOref,
               interestOracleOref,
-              treasuryOref,
+              undefined,
               interestCollectorOref,
               params,
               lucid,

@@ -9,7 +9,6 @@ import {
   findCollateralAsset,
   findCdpCreatorOref,
   findInterestOracleOref,
-  findTreasuryOref,
   findAllRobs,
   toOutRef,
 } from '../utils/v3-finders.js';
@@ -32,20 +31,15 @@ export function registerLeverageCdpTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
 
-            const [iassetOut, collateralOut, cdpCreatorOref, treasuryOref, allRobs] =
-              await Promise.all([
-                findIAsset(lucid, params, asset),
-                findCollateralAsset(lucid, params, asset),
-                findCdpCreatorOref(lucid, params),
-                findTreasuryOref(lucid, params),
-                findAllRobs(lucid, params, asset),
-              ]);
+            const [iassetOut, collateralOut, cdpCreatorOref, allRobs] = await Promise.all([
+              findIAsset(lucid, params, asset),
+              findCollateralAsset(lucid, params, asset),
+              findCdpCreatorOref(lucid, params),
+              findAllRobs(lucid, params, asset),
+            ]);
 
             if (allRobs.length === 0) {
               throw new Error('No ROB positions found on-chain for this iAsset');
-            }
-            if (treasuryOref === undefined) {
-              throw new Error('No ADA-only treasury UTxO available for leverage operation');
             }
 
             const [priceSource, interestOracleOref] = await Promise.all([
@@ -62,7 +56,7 @@ export function registerLeverageCdpTools(server: McpServer): void {
               toOutRef(collateralOut.utxo),
               cdpCreatorOref,
               interestOracleOref,
-              treasuryOref,
+              undefined,
               params,
               lucid,
               allRobs,

@@ -1,0 +1,12 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@qbtlabs/x402': true
+  bigint-buffer: true
+  bufferutil: true
+  cbor-extract: true
+  esbuild: true
+  msgpackr-extract: true
+  utf-8-validate: true
+
+minimumReleaseAgeExclude:
+  - '@indigo-labs/*'
