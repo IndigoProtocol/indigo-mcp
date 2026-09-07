@@ -69,15 +69,5 @@
     "typescript": "^5.9.2",
     "vitest": "^4.0.18",
     "zod": "^3.25.76"
-  },
-  "dependencies": {
-    "libsodium-sumo": "^0.7.16",
-    "libsodium-wrappers-sumo": "^0.7.16",
-    "undici": "^7.24.5"
-  },
-  "pnpm": {
-    "overrides": {
-      "@lucid-evolution/uplc": ">=0.2.22"
-    }
   }
 }

@@ -7,16 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      libsodium-sumo:
-        specifier: ^0.7.16
-        version: 0.7.16
-      libsodium-wrappers-sumo:
-        specifier: ^0.7.16
-        version: 0.7.16
-      undici:
-        specifier: ^7.24.5
-        version: 7.24.5
     devDependencies:
       '@indigo-labs/cardano-offchain-common':
         specifier: 1.5.2
