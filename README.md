@@ -553,7 +553,7 @@ Smithery-specific.
 
 ### Prerequisites
 
-- Node.js >= 20 (the bundled `undici` requires the `File` global, added in Node 20)
+- Node.js >= 22.23.4 (the Brotli decoder fix for CVE-2026-111497; the server refuses to start on older runtimes)
 - npm
 
 ### Setup

@@ -8,7 +8,7 @@
 # This Dockerfile previously copied from .smithery/hosted/, which nothing in the
 # repo produces, so every container build failed on a missing file.
 
-FROM node:22-slim AS build
+FROM node:22.23.4-slim AS build
 
 WORKDIR /app
 RUN npm install -g pnpm@10
@@ -25,7 +25,7 @@ COPY src ./src
 # files the Cardano libraries load at runtime into dist/.
 RUN pnpm build
 
-FROM node:22-slim AS runtime
+FROM node:22.23.4-slim AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
