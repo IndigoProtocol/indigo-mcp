@@ -1,10 +1,16 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { processSpRequest, annulRequest } from '@indigo-labs/indigo-sdk';
+import {
+  processSpRequest,
+  annulRequest,
+  findE2s2sSnapshots,
+  findStabilityPool,
+  findIAsset,
+} from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import { findStabilityPool, findIAsset, findE2s2sSnapshotOrefs } from '../utils/v3-finders.js';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 
 export function registerSpRequestTools(server: McpServer): void {
   server.tool(
@@ -30,17 +36,19 @@ export function registerSpRequestTools(server: McpServer): void {
             ]);
             if (!accountUtxo) throw new Error('Account UTxO not found on chain');
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [stabilityPool, iassetOut, e2s2sSnapshotOrefs] = await Promise.all([
-              findStabilityPool(lucid, params, asset),
-              findIAsset(lucid, params, asset),
-              findE2s2sSnapshotOrefs(lucid, params, asset),
+              findStabilityPool(lucid, params, assetBytes),
+              findIAsset(lucid, params, assetBytes),
+              findE2s2sSnapshots(lucid, params, assetBytes),
             ]);
 
             return processSpRequest(
               stabilityPool.utxo,
               accountUtxo,
               iassetOut.utxo,
-              e2s2sSnapshotOrefs,
+              e2s2sSnapshotOrefs.map((o) => o.utxo),
               params,
               lucid
             );

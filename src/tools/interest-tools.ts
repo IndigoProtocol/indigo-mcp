@@ -1,5 +1,5 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { LucidEvolution, OutRef } from '@lucid-evolution/lucid';
+import { fromHex, fromText, type LucidEvolution, type OutRef } from '@lucid-evolution/lucid';
 import { z } from 'zod';
 import {
   batchCollectInterest,
@@ -9,18 +9,15 @@ import {
   getInlineDatumOrThrow,
   fromSystemParamsAsset,
   createScriptAddress,
+  findCollateralAsset,
+  findRandomNonAdminInterestCollector,
 } from '@indigo-labs/indigo-sdk';
 import type { SystemParams } from '@indigo-labs/indigo-sdk';
 import { assetClassValueOf, assetClassToUnit } from '@indigo-labs/cardano-offchain-common';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import {
-  findCollateralAsset,
-  findInterestOracleOref,
-  findInterestCollectorOref,
-  toOutRef,
-} from '../utils/v3-finders.js';
+import { findInterestOracleOref, toOutRef, ADA_COLLATERAL } from '../utils/v3-finders.js';
 
 /**
  * Resolve the admin interest collector OutRef — the UTxO at the interest
@@ -64,12 +61,19 @@ export function registerInterestTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
 
-            const collateralOut = await findCollateralAsset(lucid, params, asset);
+            const assetBytes = fromHex(fromText(asset));
+
+            const collateralOut = await findCollateralAsset(
+              lucid,
+              params,
+              assetBytes,
+              ADA_COLLATERAL
+            );
             const [collateralAssetOref, interestOracleOref, interestCollectorOref] =
               await Promise.all([
                 Promise.resolve(toOutRef(collateralOut.utxo)),
                 findInterestOracleOref(lucid, collateralOut),
-                findInterestCollectorOref(lucid, params),
+                findRandomNonAdminInterestCollector(lucid, params),
               ]);
 
             const cdpOutRefs = cdps.map(({ txHash, outputIndex }) => ({
@@ -216,7 +220,14 @@ export function registerInterestTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
 
-            const collateralOut = await findCollateralAsset(lucid, params, asset);
+            const assetBytes = fromHex(fromText(asset));
+
+            const collateralOut = await findCollateralAsset(
+              lucid,
+              params,
+              assetBytes,
+              ADA_COLLATERAL
+            );
             const interestOracleNft = collateralOut.datum.interestOracleNft;
 
             const oracleParams = {
@@ -270,7 +281,9 @@ export function registerInterestTools(server: McpServer): void {
         const lucid = await getLucid();
         const params = await getSystemParams();
 
-        const collateralOut = await findCollateralAsset(lucid, params, asset);
+        const assetBytes = fromHex(fromText(asset));
+
+        const collateralOut = await findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL);
         const oracleUtxo = await lucid.utxoByUnit(
           assetClassToUnit(collateralOut.datum.interestOracleNft)
         );

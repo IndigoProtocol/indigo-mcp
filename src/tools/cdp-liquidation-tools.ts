@@ -1,19 +1,22 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { liquidateCdp, redeemCdp, freezeCdp, mergeCdps } from '@indigo-labs/indigo-sdk';
+import {
+  liquidateCdp,
+  redeemCdp,
+  freezeCdp,
+  mergeCdps,
+  findStabilityPool,
+  findIAsset,
+  findCollateralAsset,
+  findRandomNonAdminInterestCollector,
+  findGov,
+} from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import {
-  findIAsset,
-  findCollateralAsset,
-  findInterestOracleOref,
-  findInterestCollectorOref,
-  findStabilityPool,
-  findGov,
-  toOutRef,
-} from '../utils/v3-finders.js';
+import { findInterestOracleOref, toOutRef, ADA_COLLATERAL } from '../utils/v3-finders.js';
 import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 
 export function registerCdpLiquidationTools(server: McpServer): void {
   server.tool(
@@ -33,9 +36,11 @@ export function registerCdpLiquidationTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [stabilityPool, interestCollectorOref] = await Promise.all([
-              findStabilityPool(lucid, params, asset),
-              findInterestCollectorOref(lucid, params),
+              findStabilityPool(lucid, params, assetBytes),
+              findRandomNonAdminInterestCollector(lucid, params),
             ]);
 
             return liquidateCdp(
@@ -93,10 +98,12 @@ export function registerCdpLiquidationTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [iassetOut, collateralOut, interestCollectorOref, gov] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
-              findInterestCollectorOref(lucid, params),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomNonAdminInterestCollector(lucid, params),
               findGov(lucid, params),
             ]);
 
@@ -163,9 +170,11 @@ export function registerCdpLiquidationTools(server: McpServer): void {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [iassetOut, collateralOut] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
             ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
