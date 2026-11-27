@@ -8,13 +8,15 @@ import {
   feedPriceOracleTx,
   getInlineDatumOrThrow,
   fromSystemParamsAsset,
+  findCollateralAsset,
+  findRandomNonAdminInterestCollector,
 } from '@indigo-labs/indigo-sdk';
 import { assetClassToUnit } from '@indigo-labs/cardano-offchain-common';
-import { fromText } from '@lucid-evolution/lucid';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import { ADA_COLLATERAL, findCollateralAsset, findPriceOracleOref } from '../utils/v3-finders.js';
+import { ADA_COLLATERAL } from '../utils/v3-finders.js';
 import { fetchPythPriceFeed, PYTH_MAX_DELAY_MS } from '../utils/pyth.js';
 import { getLucid } from '../utils/lucid-provider.js';
 
@@ -30,7 +32,9 @@ export function registerOracleTools(server: McpServer): void {
         const lucid = await getLucid();
         const params = await getSystemParams();
 
-        const collateralOut = await findCollateralAsset(lucid, params, asset);
+        const assetBytes = fromHex(fromText(asset));
+
+        const collateralOut = await findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL);
         const priceInfo = collateralOut.datum.priceInfo;
 
         if ('Delisted' in priceInfo) {
@@ -158,7 +162,14 @@ export function registerOracleTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
 
-            const collateralOut = await findCollateralAsset(lucid, params, asset);
+            const assetBytes = fromHex(fromText(asset));
+
+            const collateralOut = await findCollateralAsset(
+              lucid,
+              params,
+              assetBytes,
+              ADA_COLLATERAL
+            );
 
             // Only OracleNft-backed assets can be fed via this tool.
             if ('Delisted' in collateralOut.datum.priceInfo) {
@@ -170,7 +181,8 @@ export function registerOracleTools(server: McpServer): void {
               );
             }
 
-            const oracleOref = await findPriceOracleOref(lucid, collateralOut);
+            const oracleOref = await findRandomNonAdminInterestCollector(lucid, params);
+
             if (oracleOref === undefined) {
               throw new Error(`Could not resolve price oracle UTxO for ${asset}.`);
             }

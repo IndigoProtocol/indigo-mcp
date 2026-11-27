@@ -1,18 +1,21 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { openCdp, depositCdp, withdrawCdp, closeCdp } from '@indigo-labs/indigo-sdk';
+import {
+  openCdp,
+  depositCdp,
+  withdrawCdp,
+  closeCdp,
+  findCollateralAsset,
+  findIAsset,
+  findRandomCdpCreator,
+  findRandomNonAdminInterestCollector,
+} from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
-import {
-  findIAsset,
-  findCollateralAsset,
-  findCdpCreatorOref,
-  findInterestOracleOref,
-  findInterestCollectorOref,
-  toOutRef,
-} from '../utils/v3-finders.js';
+import { findInterestOracleOref, toOutRef, ADA_COLLATERAL } from '../utils/v3-finders.js';
 import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 
 export function registerCdpWriteTools(server: McpServer): void {
   server.tool(
@@ -31,10 +34,12 @@ export function registerCdpWriteTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [iassetOut, collateralOut, cdpCreatorOref] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
-              findCdpCreatorOref(lucid, params),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomCdpCreator(lucid, params),
             ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
@@ -99,11 +104,12 @@ export function registerCdpWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const assetBytes = fromHex(fromText(asset));
 
             const [iassetOut, collateralOut, interestCollectorOref] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
-              findInterestCollectorOref(lucid, params),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomNonAdminInterestCollector(lucid, params),
             ]);
 
             const interestOracleOref = await findInterestOracleOref(lucid, collateralOut);
@@ -161,11 +167,12 @@ export function registerCdpWriteTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const assetBytes = fromHex(fromText(asset));
 
             const [iassetOut, collateralOut, interestCollectorOref] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
-              findInterestCollectorOref(lucid, params),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomNonAdminInterestCollector(lucid, params),
             ]);
 
             const [priceSource, interestOracleOref] = await Promise.all([
@@ -229,10 +236,11 @@ export function registerCdpWriteTools(server: McpServer): void {
           async (lucid) => {
             const params = await getSystemParams();
             const cdpOref = { txHash: cdpTxHash, outputIndex: cdpOutputIndex };
+            const assetBytes = fromHex(fromText(asset));
 
             const [collateralOut, interestCollectorOref] = await Promise.all([
-              findCollateralAsset(lucid, params, asset),
-              findInterestCollectorOref(lucid, params),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomNonAdminInterestCollector(lucid, params),
             ]);
 
             const interestOracleOref = await findInterestOracleOref(lucid, collateralOut);

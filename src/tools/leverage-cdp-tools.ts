@@ -1,18 +1,22 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { leverageCdpWithRob } from '@indigo-labs/indigo-sdk';
+import {
+  findCollateralAsset,
+  findIAsset,
+  findRandomCdpCreator,
+  leverageCdpWithRob,
+} from '@indigo-labs/indigo-sdk';
 import { buildUnsignedTx } from '../utils/tx-builder.js';
 import { getSystemParams } from '../utils/sdk-config.js';
 import { AssetParam } from '../utils/validators.js';
 import {
-  findIAsset,
-  findCollateralAsset,
-  findCdpCreatorOref,
   findInterestOracleOref,
   findAllRobs,
   toOutRef,
+  ADA_COLLATERAL,
 } from '../utils/v3-finders.js';
 import { resolvePriceSource, pythSummary } from '../utils/pyth.js';
+import { fromHex, fromText } from '@lucid-evolution/lucid';
 
 export function registerLeverageCdpTools(server: McpServer): void {
   server.tool(
@@ -31,10 +35,12 @@ export function registerLeverageCdpTools(server: McpServer): void {
           async (lucid, ctx) => {
             const params = await getSystemParams();
 
+            const assetBytes = fromHex(fromText(asset));
+
             const [iassetOut, collateralOut, cdpCreatorOref, allRobs] = await Promise.all([
-              findIAsset(lucid, params, asset),
-              findCollateralAsset(lucid, params, asset),
-              findCdpCreatorOref(lucid, params),
+              findIAsset(lucid, params, assetBytes),
+              findCollateralAsset(lucid, params, assetBytes, ADA_COLLATERAL),
+              findRandomCdpCreator(lucid, params),
               findAllRobs(lucid, params, asset),
             ]);
 

@@ -8,8 +8,11 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
  * must pass `undefined` for the price-oracle OutRef while doing so.
  */
 
-vi.mock('@indigo-labs/indigo-sdk', () =>
-  Object.fromEntries(
+const utxo = (txHash: string) => ({ txHash, outputIndex: 0 });
+const oref = (txHash: string) => ({ txHash, outputIndex: 0 });
+
+vi.mock('@indigo-labs/indigo-sdk', () => ({
+  ...Object.fromEntries(
     [
       'openCdp',
       'depositCdp',
@@ -28,15 +31,18 @@ vi.mock('@indigo-labs/indigo-sdk', () =>
       'claimRob',
       'redeemRob',
     ].map((name) => [name, vi.fn(() => Promise.resolve('tx-builder'))])
-  )
-);
+  ),
+  findIAsset: vi.fn(() => Promise.resolve({ utxo: utxo('iasset'), datum: {} })),
+  findCollateralAsset: vi.fn(() => Promise.resolve({ utxo: utxo('collateral'), datum: {} })),
+  findRandomCdpCreator: vi.fn(() => Promise.resolve(oref('cdp-creator'))),
+  findRandomNonAdminInterestCollector: vi.fn(() => Promise.resolve(oref('interest-collector'))),
+  findGov: vi.fn(() => Promise.resolve({ utxo: utxo('gov'), datum: {} })),
+  findStabilityPool: vi.fn(() => Promise.resolve({ utxo: utxo('stability-pool'), datum: {} })),
+}));
 
 vi.mock('../../../utils/sdk-config.js', () => ({
   getSystemParams: vi.fn(() => Promise.resolve({ params: true })),
 }));
-
-const utxo = (txHash: string) => ({ txHash, outputIndex: 0 });
-const oref = (txHash: string) => ({ txHash, outputIndex: 0 });
 
 vi.mock('../../../utils/v3-finders.js', () => ({
   ADA_COLLATERAL: { currencySymbol: new Uint8Array(), tokenName: new Uint8Array() },
@@ -44,14 +50,8 @@ vi.mock('../../../utils/v3-finders.js', () => ({
     txHash: u.txHash,
     outputIndex: u.outputIndex,
   }),
-  findIAsset: vi.fn(() => Promise.resolve({ utxo: utxo('iasset'), datum: {} })),
-  findCollateralAsset: vi.fn(() => Promise.resolve({ utxo: utxo('collateral'), datum: {} })),
-  findCdpCreatorOref: vi.fn(() => Promise.resolve(oref('cdp-creator'))),
   findInterestOracleOref: vi.fn(() => Promise.resolve(oref('interest-oracle'))),
-  findInterestCollectorOref: vi.fn(() => Promise.resolve(oref('interest-collector'))),
   findTreasuryOref: vi.fn(() => Promise.resolve(oref('treasury'))),
-  findGov: vi.fn(() => Promise.resolve({ utxo: utxo('gov'), datum: {} })),
-  findStabilityPool: vi.fn(() => Promise.resolve({ utxo: utxo('stability-pool'), datum: {} })),
   findAllRobs: vi.fn(() => Promise.resolve([[utxo('rob'), {}]])),
 }));
 

@@ -58,7 +58,7 @@ const lucid = pkgRoot("@lucid-evolution/lucid", [sdk]);
 const search = [lucid, sdk, process.cwd()];
 for (const [spec, rel] of [
   ["@anastasia-labs/cardano-multiplatform-lib-nodejs", "cardano_multiplatform_lib_bg.wasm"],
-  ["@lucid-evolution/uplc", "dist/node/uplc_tx_bg.wasm"],
+  ["@lucid-evolution/uplc", "dist/speed/node/uplc_tx_bg.wasm"],
   ["@emurgo/cardano-message-signing-nodejs", "cardano_message_signing_bg.wasm"],
 ]) {
   const src = path.join(pkgRoot(spec, search), rel);
